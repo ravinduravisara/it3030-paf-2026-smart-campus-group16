@@ -1,0 +1,71 @@
+############################################
+# OS
+############################################
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+############################################
+# IDEs / Editors
+############################################
+.idea/
+*.iml
+*.ipr
+*.iws
+
+.classpath
+.project
+.settings/
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+############################################
+# Logs
+############################################
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+############################################
+# Java / Maven / Gradle
+############################################
+*.class
+*.jar
+*.war
+*.ear
+
+**/target/
+**/build/
+.gradle/
+
+hs_err_pid*
+replay_pid*
+
+############################################
+# Node / Vite
+############################################
+**/node_modules/
+**/dist/
+**/.vite/
+**/.cache/
+**/.turbo/
+**/.parcel-cache/
+**/coverage/
+
+############################################
+# Env / secrets
+############################################
+.env
+.env.*
+!.env.example
+
+############################################
+# App runtime data
+############################################
+backend/uploads/
