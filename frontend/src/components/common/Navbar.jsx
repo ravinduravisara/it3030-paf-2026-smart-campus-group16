@@ -21,7 +21,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/40 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3">
+        <a href="#home" className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-cyan-500 shadow-lg shadow-indigo-500/20">
             <div className="h-4 w-4 rounded-md bg-white/90" />
           </div>
@@ -31,7 +31,7 @@ export default function Navbar() {
               SmartCampus
             </h1>
           </div>
-        </div>
+        </a>
 
         <nav className="hidden items-center gap-8 md:flex">
           {navItems.map((item) => (
