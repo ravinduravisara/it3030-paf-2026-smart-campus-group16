@@ -8,6 +8,7 @@ import RegisterPage from './pages/auth/RegisterPage.jsx'
 import HomePage from './pages/home/HomePage.jsx'
 import ResourcesOverviewPage from './pages/resources/ResourcesOverviewPage.jsx'
 import TicketsOverviewPage from './pages/tickets/TicketsOverviewPage.jsx'
+import { useAuth } from './hooks/useAuth.js'
 
 function getRouteFromHash(hash) {
   const raw = (hash || '').replace(/^#/, '')

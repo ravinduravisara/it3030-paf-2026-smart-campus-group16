@@ -6,6 +6,7 @@ import java.util.Objects;
 import com.smartcampus.auth.dto.AuthLoginRequest;
 import com.smartcampus.auth.dto.AuthResponse;
 import com.smartcampus.auth.dto.AuthSignupRequest;
+import com.smartcampus.config.JwtUtil;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 
@@ -16,9 +17,11 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AuthService {
 	private final UserRepository userRepository;
+	private final JwtUtil jwtUtil;
 
-	public AuthService(UserRepository userRepository) {
+	public AuthService(UserRepository userRepository, JwtUtil jwtUtil) {
 		this.userRepository = userRepository;
+		this.jwtUtil = jwtUtil;
 	}
 
 	private static final Map<String, TempAccount> TEMP_ACCOUNTS = Map.of(
@@ -37,7 +40,7 @@ public class AuthService {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
 		}
 
-		String token = "temp-" + account.role().toLowerCase() + "-" + System.currentTimeMillis();
+		String token = jwtUtil.generateToken(account.username(), account.role());
 		return new AuthResponse(token, account.username(), account.role());
 	}
 
@@ -55,8 +58,23 @@ public class AuthService {
 		user.setProfilePhoto(request.profilePhoto());
 		userRepository.save(user);
 
-		String token = "signup-" + System.currentTimeMillis();
+		String token = jwtUtil.generateToken(request.email(), "USER");
 		return new AuthResponse(token, request.email(), "USER");
+	}
+
+	public AuthResponse oauth2Login(String email, String name, String picture) {
+		User user = userRepository.findByEmail(email);
+		if (user == null) {
+			user = new User();
+			user.setEmail(email);
+			user.setUsername(name);
+			user.setRole("USER");
+			user.setProfilePhoto(picture);
+			userRepository.save(user);
+		}
+
+		String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+		return new AuthResponse(token, user.getEmail(), user.getRole());
 	}
 
 	private record TempAccount(String username, String password, String role) {

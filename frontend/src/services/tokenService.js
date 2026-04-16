@@ -1,8 +1,22 @@
 const TOKEN_KEY = 'sc.accessToken'
 const USER_KEY = 'sc.user'
 
+// Helper function to read cookie
+function getCookie(name) {
+	const nameEQ = name + '='
+	const cookies = document.cookie.split(';')
+	for (let cookie of cookies) {
+		cookie = cookie.trim()
+		if (cookie.indexOf(nameEQ) === 0) {
+			return decodeURIComponent(cookie.substring(nameEQ.length))
+		}
+	}
+	return null
+}
+
 export function getAccessToken() {
-	return localStorage.getItem(TOKEN_KEY)
+	// Try localStorage first, then cookies (for OAuth2)
+	return localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_KEY)
 }
 
 export function setAccessToken(token) {
@@ -14,7 +28,8 @@ export function clearAccessToken() {
 }
 
 export function getUser() {
-	const raw = localStorage.getItem(USER_KEY)
+	// Try localStorage first, then cookies
+	let raw = localStorage.getItem(USER_KEY) || getCookie(USER_KEY)
 	if (!raw) return null
 	try {
 		return JSON.parse(raw)

@@ -52,13 +52,13 @@ export default function LoginPage() {
 				<div className="grid gap-0 lg:grid-cols-2">
 					<div className="border-b border-gray-200/70 p-6 lg:border-b-0 lg:border-r">
 						<p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
-							Student Login
+							{mode === 'student' ? 'Student Login' : 'Admin Login'}
 						</p>
 						<h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900">
 							Access SmartCampus
 						</h2>
 						<p className="mt-3 text-sm leading-6 text-gray-600">
-							Log in with your Student ID or Email.
+							{mode === 'student' ? 'Log in with your Student ID or Email.' : 'Log in as an administrator.'}
 						</p>
 
 						{isAuthenticated ? (
@@ -80,6 +80,30 @@ export default function LoginPage() {
 
 					<div className="p-6">
 						<div className="space-y-4">
+							<div className="flex items-center gap-2 rounded-2xl bg-gray-50 p-2">
+								<button
+									type="button"
+									onClick={() => setMode('student')}
+									className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+										mode === 'student'
+											? 'bg-white text-gray-900 shadow-sm'
+											: 'text-gray-600 hover:text-gray-900'
+									}`}
+								>
+									Student Login
+								</button>
+								<button
+									type="button"
+									onClick={() => setMode('admin')}
+									className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+										mode === 'admin'
+											? 'bg-white text-gray-900 shadow-sm'
+											: 'text-gray-600 hover:text-gray-900'
+									}`}
+								>
+									Admin Login
+								</button>
+							</div>
 							<button
 								type="button"
 								onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
@@ -97,26 +121,53 @@ export default function LoginPage() {
 							</div>
 						</div>
 						<form className="space-y-4" onSubmit={handleSignIn}>
-							<div>
-								<label className="text-sm font-medium text-gray-700">Student ID or Email</label>
-								<input
-									name="studentIdOrEmail"
-									type="text"
-									placeholder="e.g., 12345 or student@campus.edu"
-									required
-									className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
-								/>
-							</div>
-							<div>
-								<label className="text-sm font-medium text-gray-700">Password</label>
-								<input
-									name="password"
-									type="password"
-									placeholder="••••••••"
-									required
-									className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
-								/>
-							</div>
+							{mode === 'student' ? (
+								<>
+									<div>
+										<label className="text-sm font-medium text-gray-700">Student ID or Email</label>
+										<input
+											name="studentIdOrEmail"
+											type="text"
+											placeholder="e.g., 12345 or student@campus.edu"
+											required
+											className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+										/>
+									</div>
+									<div>
+										<label className="text-sm font-medium text-gray-700">Password</label>
+										<input
+											name="password"
+											type="password"
+											placeholder="••••••••"
+											required
+											className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+										/>
+									</div>
+								</>
+							) : (
+								<>
+									<div>
+										<label className="text-sm font-medium text-gray-700">Username</label>
+										<input
+											name="username"
+											type="text"
+											placeholder="admin"
+											required
+											className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+										/>
+									</div>
+									<div>
+										<label className="text-sm font-medium text-gray-700">Password</label>
+										<input
+											name="password"
+											type="password"
+											placeholder="••••••••"
+											required
+											className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+										/>
+									</div>
+								</>
+							)}
 							<button
 								type="submit"
 								disabled={busy}

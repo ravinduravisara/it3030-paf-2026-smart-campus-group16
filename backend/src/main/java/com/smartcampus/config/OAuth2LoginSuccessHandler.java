@@ -1,7 +1,7 @@
 package com.smartcampus.config;
 
-import com.smartcampus.user.model.User;
-import com.smartcampus.user.repository.UserRepository;
+import com.smartcampus.auth.dto.AuthResponse;
+import com.smartcampus.auth.service.AuthService;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -9,6 +9,7 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -16,10 +17,10 @@ import java.io.IOException;
 @Component
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-	private final UserRepository userRepository;
+	private final AuthService authService;
 
-	public OAuth2LoginSuccessHandler(UserRepository userRepository) {
-		this.userRepository = userRepository;
+	public OAuth2LoginSuccessHandler(AuthService authService) {
+		this.authService = authService;
 	}
 
 	@Override
@@ -30,19 +31,25 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		String name = oauth2User.getAttribute("name");
 		String picture = oauth2User.getAttribute("picture");
 
-		// Save or update user
-		User user = userRepository.findByEmail(email);
-		if (user == null) {
-			user = new User();
-			user.setEmail(email);
-			user.setUsername(name);
-			user.setRole("USER");
-			user.setProfilePhoto(picture);
-			userRepository.save(user);
-		}
+		// Get JWT token from auth service
+		AuthResponse authResponse = authService.oauth2Login(email, name, picture);
 
-		// Here you can set session or JWT
-		setDefaultTargetUrl("http://localhost:5173/#home"); // Assuming frontend runs on 5173
+		// Set cookies instead of URL parameters
+		Cookie tokenCookie = new Cookie("sc.accessToken", authResponse.token());
+		tokenCookie.setPath("/");
+		tokenCookie.setHttpOnly(true);
+		tokenCookie.setMaxAge(86400); // 24 hours
+		response.addCookie(tokenCookie);
+
+		// Store user info in a separate cookie (not httpOnly so JS can read it)
+		String userJson = "{\"email\":\"" + authResponse.username() + "\",\"role\":\"" + authResponse.role() + "\"}";
+		Cookie userCookie = new Cookie("sc.user", java.net.URLEncoder.encode(userJson, "UTF-8"));
+		userCookie.setPath("/");
+		userCookie.setMaxAge(86400); // 24 hours
+		response.addCookie(userCookie);
+
+		// Redirect to frontend home
+		setDefaultTargetUrl("http://localhost:5176/#home");
 		super.onAuthenticationSuccess(request, response, authentication);
 	}
 }
