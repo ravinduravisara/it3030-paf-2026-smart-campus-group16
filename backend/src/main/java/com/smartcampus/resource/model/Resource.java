@@ -1,6 +1,8 @@
 package com.smartcampus.resource.model;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -13,9 +15,11 @@ public class Resource {
 
 	private String name;
 	private ResourceType type;
+	private Integer capacity;
 	private ResourceStatus status;
 	private String description;
 	private String location;
+	private List<AvailabilityWindow> availabilityWindows = new ArrayList<>();
 
 	@CreatedDate
 	private Instant createdAt;
@@ -44,6 +48,14 @@ public class Resource {
 		this.type = type;
 	}
 
+	public Integer getCapacity() {
+		return capacity;
+	}
+
+	public void setCapacity(Integer capacity) {
+		this.capacity = capacity;
+	}
+
 	public ResourceStatus getStatus() {
 		return status;
 	}
@@ -66,6 +78,14 @@ public class Resource {
 
 	public void setLocation(String location) {
 		this.location = location;
+	}
+
+	public List<AvailabilityWindow> getAvailabilityWindows() {
+		return availabilityWindows;
+	}
+
+	public void setAvailabilityWindows(List<AvailabilityWindow> availabilityWindows) {
+		this.availabilityWindows = availabilityWindows != null ? availabilityWindows : new ArrayList<>();
 	}
 
 	public Instant getCreatedAt() {
