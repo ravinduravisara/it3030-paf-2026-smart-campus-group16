@@ -4,6 +4,7 @@ import { signIn } from '../../services/authService.js'
 
 export default function LoginPage() {
 	const { isAuthenticated, user, establishSession, logout } = useAuth()
+	const [mode, setMode] = useState('student') // 'student' or 'admin'
 	const [busy, setBusy] = useState(false)
 
 	async function handleSignIn(e) {
@@ -11,17 +12,32 @@ export default function LoginPage() {
 		if (busy) return
 
 		const formData = new FormData(e.currentTarget)
-		const studentIdOrEmail = String(formData.get('studentIdOrEmail') || '').trim()
-		const password = String(formData.get('password') || '').trim()
-		if (!studentIdOrEmail || !password) return
+		if (mode === 'student') {
+			const studentIdOrEmail = String(formData.get('studentIdOrEmail') || '').trim()
+			const password = String(formData.get('password') || '').trim()
+			if (!studentIdOrEmail || !password) return
 
-		setBusy(true)
-		try {
-			const result = await signIn({ username: studentIdOrEmail, password })
-			establishSession(result)
-			window.location.hash = '#home'
-		} finally {
-			setBusy(false)
+			setBusy(true)
+			try {
+				const result = await signIn({ username: studentIdOrEmail, password })
+				establishSession(result)
+				window.location.hash = '#home'
+			} finally {
+				setBusy(false)
+			}
+		} else {
+			const username = String(formData.get('username') || '').trim()
+			const password = String(formData.get('password') || '').trim()
+			if (!username || !password) return
+
+			setBusy(true)
+			try {
+				const result = await signIn({ username, password })
+				establishSession(result)
+				window.location.hash = result?.user?.role === 'ADMIN' ? '#admin' : '#home'
+			} finally {
+				setBusy(false)
+			}
 		}
 	}
 
@@ -63,6 +79,23 @@ export default function LoginPage() {
 					</div>
 
 					<div className="p-6">
+						<div className="space-y-4">
+							<button
+								type="button"
+								onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
+								className="w-full rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-500"
+							>
+								Login with Google
+							</button>
+							<div className="relative">
+								<div className="absolute inset-0 flex items-center">
+									<div className="w-full border-t border-gray-300" />
+								</div>
+								<div className="relative flex justify-center text-sm">
+									<span className="bg-white px-2 text-gray-500">Or continue with</span>
+								</div>
+							</div>
+						</div>
 						<form className="space-y-4" onSubmit={handleSignIn}>
 							<div>
 								<label className="text-sm font-medium text-gray-700">Student ID or Email</label>
@@ -92,6 +125,15 @@ export default function LoginPage() {
 								{busy ? 'Signing in…' : 'Sign in'}
 							</button>
 						</form>
+						<div className="mt-4 text-center">
+							<button
+								type="button"
+								onClick={() => window.location.hash = '#register'}
+								className="text-sm text-indigo-600 hover:text-indigo-500"
+							>
+								Don't have an account? Register here
+							</button>
+						</div>
 					</div>
 				</div>
 			</section>

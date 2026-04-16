@@ -48,14 +48,40 @@ export async function signIn({ email, username, password } = {}) {
 	}
 }
 
-export async function signUp({ name, email }) {
+async function tryBackendSignup({ studentId, name, email, password, profilePhoto }) {
+	const res = await fetch('http://localhost:8080/api/auth/signup', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ studentId, name, email, password, profilePhoto }),
+	})
+
+	if (!res.ok) {
+		throw new Error('Signup failed')
+	}
+
+	const data = await res.json()
 	return {
-		token: createFakeToken(),
+		token: data.token,
 		user: {
-			name,
-			email,
-			role: 'USER',
+			email: data.username,
+			role: data.role,
 		},
+	}
+}
+
+export async function signUp({ studentId, name, email, password, profilePhoto }) {
+	try {
+		return await tryBackendSignup({ studentId, name, email, password, profilePhoto })
+	} catch {
+		// Fall back to local placeholder
+		return {
+			token: createFakeToken(),
+			user: {
+				name,
+				email,
+				role: 'USER',
+			},
+		}
 	}
 }
 

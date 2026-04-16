@@ -2,6 +2,7 @@ package com.smartcampus.auth.controller;
 
 import com.smartcampus.auth.dto.AuthLoginRequest;
 import com.smartcampus.auth.dto.AuthResponse;
+import com.smartcampus.auth.dto.AuthSignupRequest;
 import com.smartcampus.auth.service.AuthService;
 
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,5 +22,10 @@ public class AuthController {
 	@PostMapping("/login")
 	public AuthResponse login(@RequestBody AuthLoginRequest request) {
 		return authService.login(request);
+	}
+
+	@PostMapping("/signup")
+	public AuthResponse signup(@RequestBody AuthSignupRequest request) {
+		return authService.signup(request);
 	}
 }
