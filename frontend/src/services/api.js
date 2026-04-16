@@ -29,3 +29,16 @@ export function postJson(path, body) {
 		body: JSON.stringify(body ?? {}),
 	})
 }
+
+export function putJson(path, body) {
+	return request(path, {
+		method: 'PUT',
+		body: JSON.stringify(body ?? {}),
+	})
+}
+
+export function deleteJson(path) {
+	return request(path, {
+		method: 'DELETE',
+	})
+}

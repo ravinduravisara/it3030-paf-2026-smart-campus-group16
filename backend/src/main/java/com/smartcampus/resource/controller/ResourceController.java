@@ -5,17 +5,21 @@ import java.util.List;
 import com.smartcampus.resource.dto.ResourceCreateRequest;
 import com.smartcampus.resource.dto.ResourceResponse;
 import com.smartcampus.resource.dto.ResourceUpdateRequest;
+import com.smartcampus.resource.model.ResourceStatus;
+import com.smartcampus.resource.model.ResourceType;
 import com.smartcampus.resource.service.ResourceService;
 
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -28,8 +32,14 @@ public class ResourceController {
 	}
 
 	@GetMapping
-	public List<ResourceResponse> list() {
-		return resourceService.listResources();
+	public List<ResourceResponse> list(
+			@RequestParam(required = false) ResourceType type,
+			@RequestParam(required = false) Integer minCapacity,
+			@RequestParam(required = false) String location,
+			@RequestParam(required = false) ResourceStatus status,
+			@RequestParam(required = false, name = "q") String q
+	) {
+		return resourceService.listResources(type, status, minCapacity, location, q);
 	}
 
 	@GetMapping("/{id}")
@@ -56,5 +66,14 @@ public class ResourceController {
 			return ResponseEntity.notFound().build();
 		}
 		return ResponseEntity.ok(updated);
+	}
+
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Void> delete(@PathVariable String id) {
+		boolean deleted = resourceService.deleteResource(id);
+		if (!deleted) {
+			return ResponseEntity.notFound().build();
+		}
+		return ResponseEntity.noContent().build();
 	}
 }
