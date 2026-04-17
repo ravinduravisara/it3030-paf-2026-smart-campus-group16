@@ -16,7 +16,7 @@ spring:
     name: smartcampus-backend
   data:
     mongodb:
-      uri: "${MONGODB_URI:mongodb://SmartCampus:HUhsUVKQeWQW2cr8@ac-8y9loh2-shard-00-00.ne2wk3x.mongodb.net:27017,ac-8y9loh2-shard-00-01.ne2wk3x.mongodb.net:27017,ac-8y9loh2-shard-00-02.ne2wk3x.mongodb.net:27017/smartcampus?ssl=true&replicaSet=atlas-rbg5gv-shard-0&authSource=admin&retryWrites=true&w=majority}"
+      uri: ${MONGODB_URI:mongodb+srv://SmartCampus:HUhsUVKQeWQW2cr8@cluster0.ne2wk3x.mongodb.net/smartcampus?retryWrites=true&w=majority&appName=Cluster0}
       auto-index-creation: true
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
