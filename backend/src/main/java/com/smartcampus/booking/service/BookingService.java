@@ -7,15 +7,19 @@ import com.smartcampus.booking.dto.BookingResponse;
 import com.smartcampus.booking.model.Booking;
 import com.smartcampus.booking.model.BookingStatus;
 import com.smartcampus.booking.repository.BookingRepository;
+import com.smartcampus.notification.model.NotificationType;
+import com.smartcampus.notification.service.NotificationService;
 
 import org.springframework.stereotype.Service;
 
 @Service
 public class BookingService {
 	private final BookingRepository bookingRepository;
+	private final NotificationService notificationService;
 
-	public BookingService(BookingRepository bookingRepository) {
+	public BookingService(BookingRepository bookingRepository, NotificationService notificationService) {
 		this.bookingRepository = bookingRepository;
+		this.notificationService = notificationService;
 	}
 
 	public List<BookingResponse> listBookings() {
@@ -32,6 +36,38 @@ public class BookingService {
 		booking.setRequestedBy(request.requestedBy());
 		booking.setStatus(BookingStatus.PENDING);
 		return toResponse(bookingRepository.save(booking));
+	}
+
+	public BookingResponse approveBooking(String id) {
+		Booking booking = bookingRepository.findById(id).orElse(null);
+		if (booking == null) {
+			return null;
+		}
+		booking.setStatus(BookingStatus.APPROVED);
+		Booking saved = bookingRepository.save(booking);
+		notificationService.createNotification(
+				saved.getRequestedBy(),
+				null,
+				"Your booking for resource " + saved.getResourceId() + " has been approved.",
+				NotificationType.BOOKING
+		);
+		return toResponse(saved);
+	}
+
+	public BookingResponse rejectBooking(String id) {
+		Booking booking = bookingRepository.findById(id).orElse(null);
+		if (booking == null) {
+			return null;
+		}
+		booking.setStatus(BookingStatus.REJECTED);
+		Booking saved = bookingRepository.save(booking);
+		notificationService.createNotification(
+				saved.getRequestedBy(),
+				null,
+				"Your booking for resource " + saved.getResourceId() + " has been rejected.",
+				NotificationType.BOOKING
+		);
+		return toResponse(saved);
 	}
 
 	private static BookingResponse toResponse(Booking booking) {

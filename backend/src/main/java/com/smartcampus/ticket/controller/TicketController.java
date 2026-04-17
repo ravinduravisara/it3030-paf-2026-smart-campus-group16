@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.smartcampus.ticket.dto.TicketCreateRequest;
 import com.smartcampus.ticket.dto.TicketResponse;
+import com.smartcampus.ticket.dto.TicketStatusUpdateRequest;
 import com.smartcampus.ticket.service.TicketService;
 
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,5 +44,14 @@ public class TicketController {
 	@PostMapping
 	public ResponseEntity<TicketResponse> create(@Valid @RequestBody TicketCreateRequest request) {
 		return ResponseEntity.ok(ticketService.createTicket(request));
+	}
+
+	@PutMapping("/{id}/status")
+	public ResponseEntity<TicketResponse> updateStatus(@PathVariable String id, @Valid @RequestBody TicketStatusUpdateRequest request) {
+		TicketResponse ticket = ticketService.updateTicketStatus(id, request.status());
+		if (ticket == null) {
+			return ResponseEntity.notFound().build();
+		}
+		return ResponseEntity.ok(ticket);
 	}
 }
