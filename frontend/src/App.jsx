@@ -5,6 +5,7 @@ import BookingsOverviewPage from './pages/bookings/BookingsOverviewPage.jsx'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx'
 import LoginPage from './pages/auth/LoginPage.jsx'
 import RegisterPage from './pages/auth/RegisterPage.jsx'
+import VerifyOtpPage from './pages/auth/VerifyOtpPage.jsx'
 import HomePage from './pages/home/HomePage.jsx'
 import ResourcesOverviewPage from './pages/resources/ResourcesOverviewPage.jsx'
 import TicketsOverviewPage from './pages/tickets/TicketsOverviewPage.jsx'
@@ -68,11 +69,13 @@ export default function App() {
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-gray-900">
       <Navbar />
 
-      <main className={(route === 'login' || route === 'register') ? 'flex-1' : 'mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8'}>
+      <main className={(route === 'login' || route === 'register' || route === 'verify-otp') ? 'flex-1' : 'mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8'}>
         {route === 'login' ? (
           <LoginPage />
         ) : route === 'register' ? (
           <RegisterPage />
+        ) : route === 'verify-otp' ? (
+          <VerifyOtpPage />
         ) : route === 'admin' ? (
           <AdminRoute>
             <AdminDashboardPage />

@@ -30,8 +30,12 @@ export default function RegisterPage() {
 		setBusy(true)
 		setError('')
 		try {
-			await signUp({ studentId, name, email, password, profilePhoto })
-			window.location.hash = '#login?registered=success'
+			const result = await signUp({ studentId, name, email, password, profilePhoto })
+			const params = new URLSearchParams({
+				email,
+				message: result?.message || 'OTP sent. Verify your account to continue.',
+			})
+			window.location.hash = `#verify-otp?${params.toString()}`
 		} catch (err) {
 			setError(err?.message || 'Registration failed')
 		} finally {

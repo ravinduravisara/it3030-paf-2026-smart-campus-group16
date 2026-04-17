@@ -5,9 +5,14 @@ public record AuthResponse(
 	String username,
 	String role,
 	String email,
-	String name
+	String name,
+	String message
 ) {
 	public AuthResponse(String token, String username, String role) {
-		this(token, username, role, username, username);
+		this(token, username, role, username, username, null);
+	}
+
+	public AuthResponse(String token, String username, String role, String email, String name) {
+		this(token, username, role, email, name, null);
 	}
 }

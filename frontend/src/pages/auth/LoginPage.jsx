@@ -7,13 +7,16 @@ export default function LoginPage() {
 	const [mode, setMode] = useState('student')
 	const [busy, setBusy] = useState(false)
 	const [error, setError] = useState('')
+	const hashQuery = window.location.hash.split('?')[1] || ''
+	const hashParams = new URLSearchParams(hashQuery)
+	const [info, setInfo] = useState(() => hashParams.get('message') || '')
 	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 	const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 	const googleLoginUrl = isLocalDev
 		? `${apiBaseUrl}/api/auth/google/dev`
 		: `${apiBaseUrl}/oauth2/authorization/google`
 	const oauthError = window.location.hash.includes('error=oauth2')
-	const registeredSuccess = window.location.hash.includes('registered=success')
+	const registeredSuccess = hashParams.get('registered') === 'success'
 
 	async function handleSignIn(e) {
 		e.preventDefault()
@@ -91,7 +94,11 @@ export default function LoginPage() {
 									Logout
 								</button>
 							</div>
-						) : null}
+						) : (
+							<div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-700">
+								New accounts must be verified with a one-time OTP before they can sign in.
+							</div>
+						)}
 					</div>
 
 					<div className="p-6">
@@ -103,7 +110,13 @@ export default function LoginPage() {
 
 						{registeredSuccess ? (
 							<div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-								Registration successful. Please log in with your new account.
+								Registration successful. Please verify OTP from your email before logging in.
+							</div>
+						) : null}
+
+						{info ? (
+							<div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+								{info}
 							</div>
 						) : null}
 
@@ -210,6 +223,7 @@ export default function LoginPage() {
 								{busy ? 'Signing in…' : 'Sign in'}
 							</button>
 						</form>
+
 						<div className="mt-4 text-center">
 							<button
 								type="button"

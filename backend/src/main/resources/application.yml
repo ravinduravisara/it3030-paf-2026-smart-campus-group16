@@ -4,6 +4,8 @@ server:
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  mail:
+    from: ${APP_MAIL_FROM:no-reply@smartcampus.local}
 
 spring:
 
@@ -13,6 +15,17 @@ spring:
     mongodb:
       uri: ${MONGODB_URI:mongodb+srv://SmartCampus:HUhsUVKQeWQW2cr8@cluster0.ne2wk3x.mongodb.net/smartcampus?retryWrites=true&w=majority&appName=Cluster0}
       auto-index-creation: true
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   security:
     oauth2:
       client:

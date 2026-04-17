@@ -13,6 +13,9 @@ public class User {
 	private String password;
 	private String role;
 	private String profilePhoto;
+	private Boolean verified;
+	private String otpCode;
+	private Long otpExpiresAt;
 
 	public String getId() {
 		return id;
@@ -68,5 +71,29 @@ public class User {
 
 	public void setProfilePhoto(String profilePhoto) {
 		this.profilePhoto = profilePhoto;
+	}
+
+	public Boolean getVerified() {
+		return verified;
+	}
+
+	public void setVerified(Boolean verified) {
+		this.verified = verified;
+	}
+
+	public String getOtpCode() {
+		return otpCode;
+	}
+
+	public void setOtpCode(String otpCode) {
+		this.otpCode = otpCode;
+	}
+
+	public Long getOtpExpiresAt() {
+		return otpExpiresAt;
+	}
+
+	public void setOtpExpiresAt(Long otpExpiresAt) {
+		this.otpExpiresAt = otpExpiresAt;
 	}
 }

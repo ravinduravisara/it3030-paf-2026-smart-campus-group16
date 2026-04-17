@@ -12,28 +12,37 @@ async function extractError(res, fallbackMessage) {
 	}
 }
 
-async function tryBackendLogin({ username, password }) {
-	const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+async function postJson(path, payload, fallbackMessage) {
+	const res = await fetch(`${API_BASE_URL}${path}`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ username, password }),
+		body: JSON.stringify(payload),
 		credentials: 'include',
 	})
 
 	if (!res.ok) {
-		throw new Error(await extractError(res, 'Login failed'))
+		throw new Error(await extractError(res, fallbackMessage))
 	}
 
-	const data = await res.json()
+	return res.json()
+}
+
+function mapAuthPayload(data, fallbackName = '') {
 	return {
 		token: data.token,
+		message: data.message,
 		user: {
-			name: data.name || data.username,
-			username: data.username,
-			email: data.email || data.username,
-			role: data.role,
+			name: data.name || fallbackName || data.username,
+			username: data.username || fallbackName,
+			email: data.email || data.username || '',
+			role: data.role || 'USER',
 		},
 	}
+}
+
+async function tryBackendLogin({ username, password }) {
+	const data = await postJson('/api/auth/login', { username, password }, 'Login failed')
+	return mapAuthPayload(data)
 }
 
 export async function signIn({ email, username, password } = {}) {
@@ -48,31 +57,28 @@ export async function signIn({ email, username, password } = {}) {
 }
 
 async function tryBackendSignup({ studentId, name, email, password, profilePhoto }) {
-	const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ studentId, name, email, password, profilePhoto }),
-		credentials: 'include',
-	})
-
-	if (!res.ok) {
-		throw new Error(await extractError(res, 'Signup failed'))
-	}
-
-	const data = await res.json()
-	return {
-		token: data.token,
-		user: {
-			name: data.name || name,
-			username: data.username,
-			email: data.email || data.username,
-			role: data.role,
-		},
-	}
+	const data = await postJson(
+		'/api/auth/signup',
+		{ studentId, name, email, password, profilePhoto },
+		'Signup failed',
+	)
+	return mapAuthPayload(data, name)
 }
 
 export async function signUp({ studentId, name, email, password, profilePhoto }) {
 	return tryBackendSignup({ studentId, name, email, password, profilePhoto })
+}
+
+export async function verifyOtp({ email, otp }) {
+	const data = await postJson('/api/auth/verify-otp', { email, otp }, 'OTP verification failed')
+	return mapAuthPayload(data)
+}
+
+export async function resendOtp({ email }) {
+	const data = await postJson('/api/auth/resend-otp', { email }, 'Resending OTP failed')
+	return {
+		message: data.message,
+	}
 }
 
 export async function signInAsAdmin() {
