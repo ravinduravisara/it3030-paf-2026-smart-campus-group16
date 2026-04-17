@@ -16,6 +16,7 @@ public class User {
 	private Boolean verified;
 	private String otpCode;
 	private Long otpExpiresAt;
+	private Boolean blocked;
 
 	public String getId() {
 		return id;
@@ -95,5 +96,13 @@ public class User {
 
 	public void setOtpExpiresAt(Long otpExpiresAt) {
 		this.otpExpiresAt = otpExpiresAt;
+	}
+
+	public Boolean getBlocked() {
+		return blocked;
+	}
+
+	public void setBlocked(Boolean blocked) {
+		this.blocked = blocked;
 	}
 }

@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { useAuth } from '../../hooks/useAuth.js'
 import { resendOtp, verifyOtp } from '../../services/authService.js'
 
 export default function VerifyOtpPage() {
-	const { establishSession } = useAuth()
 	const [busy, setBusy] = useState(false)
 	const [error, setError] = useState('')
 	const hashQuery = window.location.hash.split('?')[1] || ''
@@ -19,9 +17,12 @@ export default function VerifyOtpPage() {
 		setBusy(true)
 		setError('')
 		try {
-			const result = await verifyOtp({ email, otp })
-			establishSession(result)
-			window.location.hash = result?.user?.role === 'ADMIN' ? '#admin' : '#home'
+			await verifyOtp({ email, otp })
+			// Account created — redirect to login page
+			const params = new URLSearchParams({
+				message: 'Account verified successfully! Please log in.',
+			})
+			window.location.hash = `#login?${params.toString()}`
 		} catch (err) {
 			setError(err?.message || 'OTP verification failed')
 		} finally {
@@ -70,11 +71,9 @@ export default function VerifyOtpPage() {
 							<label className="text-sm font-medium text-gray-700">Email address</label>
 							<input
 								value={email}
-								onChange={(e) => setEmail(e.target.value)}
+								readOnly
 								type="email"
-								placeholder="student@campus.edu"
-								required
-								className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-amber-500/20 focus:ring-4"
+								className="mt-2 w-full rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-500 outline-none cursor-not-allowed"
 							/>
 						</div>
 

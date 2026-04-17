@@ -57,6 +57,13 @@ export function putJson(path, body) {
 	})
 }
 
+export function patchJson(path, body) {
+	return request(path, {
+		method: 'PATCH',
+		body: JSON.stringify(body ?? {}),
+	})
+}
+
 export function deleteJson(path) {
 	return request(path, {
 		method: 'DELETE',
