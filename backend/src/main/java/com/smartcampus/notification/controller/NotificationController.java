@@ -35,6 +35,11 @@ public class NotificationController {
 		return ResponseEntity.ok(notificationService.sendToAllUsers(title, message));
 	}
 
+	@GetMapping("/sent")
+	public List<Notification> getSentNotifications() {
+		return notificationService.getSentNotifications();
+	}
+
 	@PostMapping("/send")
 	public ResponseEntity<List<Notification>> sendToSelected(@RequestBody Map<String, Object> body) {
 		String title = (String) body.get("title");
@@ -55,6 +60,17 @@ public class NotificationController {
 	@GetMapping("/user/{userId}/unread-count")
 	public ResponseEntity<Long> getUnreadCount(@PathVariable String userId) {
 		return ResponseEntity.ok(notificationService.getUnreadCount(userId));
+	}
+
+	@PutMapping("/{id}")
+	public ResponseEntity<Notification> update(@PathVariable String id, @RequestBody Map<String, String> body) {
+		String title = body.get("title");
+		String message = body.get("message");
+		Notification notification = notificationService.updateNotification(id, title, message);
+		if (notification == null) {
+			return ResponseEntity.notFound().build();
+		}
+		return ResponseEntity.ok(notification);
 	}
 
 	@PutMapping("/{id}/read")

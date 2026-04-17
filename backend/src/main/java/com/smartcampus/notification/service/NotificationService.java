@@ -65,11 +65,29 @@ public class NotificationService {
 		return notificationRepository.save(notification);
 	}
 
+	public Notification updateNotification(String id, String title, String message) {
+		Notification notification = notificationRepository.findById(id).orElse(null);
+		if (notification == null) {
+			return null;
+		}
+		if (title != null) {
+			notification.setTitle(title);
+		}
+		if (message != null && !message.isBlank()) {
+			notification.setMessage(message);
+		}
+		return notificationRepository.save(notification);
+	}
+
 	public boolean deleteNotification(String id) {
 		if (!notificationRepository.existsById(id)) {
 			return false;
 		}
 		notificationRepository.deleteById(id);
 		return true;
+	}
+
+	public List<Notification> getSentNotifications() {
+		return notificationRepository.findByTypeOrderByCreatedAtDesc(NotificationType.GENERAL);
 	}
 }

@@ -56,6 +56,8 @@ public class SecurityConfig {
                         .hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/notifications/broadcast", "/api/notifications/send")
                         .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/notifications/sent")
+                        .hasRole("ADMIN")
                         .requestMatchers("/api/notifications/**")
                         .hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/comments/**")

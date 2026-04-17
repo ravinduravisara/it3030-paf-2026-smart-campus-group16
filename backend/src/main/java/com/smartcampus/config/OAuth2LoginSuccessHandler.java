@@ -51,7 +51,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
 		// Store user info in a separate cookie (not httpOnly so JS can read it)
 		String userJson = String.format(
-				"{\"name\":\"%s\",\"username\":\"%s\",\"email\":\"%s\",\"role\":\"%s\"}",
+				"{\"id\":\"%s\",\"name\":\"%s\",\"username\":\"%s\",\"email\":\"%s\",\"role\":\"%s\"}",
+				java.net.URLEncoder.encode(authResponse.id() != null ? authResponse.id() : "", StandardCharsets.UTF_8),
 				java.net.URLEncoder.encode(authResponse.name(), StandardCharsets.UTF_8),
 				java.net.URLEncoder.encode(authResponse.username(), StandardCharsets.UTF_8),
 				java.net.URLEncoder.encode(authResponse.email(), StandardCharsets.UTF_8),
@@ -63,9 +64,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		response.addCookie(userCookie);
 
 		String redirectUrl = String.format(
-				"%s/#login?oauth=success&token=%s&email=%s&name=%s&role=%s",
+				"%s/#login?oauth=success&token=%s&id=%s&email=%s&name=%s&role=%s",
 				frontendUrl,
 				java.net.URLEncoder.encode(authResponse.token(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.id() != null ? authResponse.id() : "", StandardCharsets.UTF_8),
 				java.net.URLEncoder.encode(authResponse.email(), StandardCharsets.UTF_8),
 				java.net.URLEncoder.encode(authResponse.name(), StandardCharsets.UTF_8),
 				java.net.URLEncoder.encode(authResponse.role(), StandardCharsets.UTF_8)
