@@ -3,6 +3,7 @@ package com.smartcampus.config;
 import com.smartcampus.auth.dto.AuthResponse;
 import com.smartcampus.auth.service.AuthService;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -13,14 +14,21 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Component
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
 	private final AuthService authService;
+    private final String frontendUrl;
 
-	public OAuth2LoginSuccessHandler(AuthService authService) {
+	public OAuth2LoginSuccessHandler(
+            AuthService authService,
+            @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl) {
 		this.authService = authService;
+        this.frontendUrl = frontendUrl != null && frontendUrl.endsWith("/")
+                ? frontendUrl.substring(0, frontendUrl.length() - 1)
+                : frontendUrl;
 	}
 
 	@Override
@@ -37,19 +45,33 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		// Set cookies instead of URL parameters
 		Cookie tokenCookie = new Cookie("sc.accessToken", authResponse.token());
 		tokenCookie.setPath("/");
-		tokenCookie.setHttpOnly(true);
+		tokenCookie.setHttpOnly(false);
 		tokenCookie.setMaxAge(86400); // 24 hours
 		response.addCookie(tokenCookie);
 
 		// Store user info in a separate cookie (not httpOnly so JS can read it)
-		String userJson = "{\"email\":\"" + authResponse.username() + "\",\"role\":\"" + authResponse.role() + "\"}";
-		Cookie userCookie = new Cookie("sc.user", java.net.URLEncoder.encode(userJson, "UTF-8"));
+		String userJson = String.format(
+				"{\"name\":\"%s\",\"username\":\"%s\",\"email\":\"%s\",\"role\":\"%s\"}",
+				java.net.URLEncoder.encode(authResponse.name(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.username(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.email(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.role(), StandardCharsets.UTF_8)
+		);
+		Cookie userCookie = new Cookie("sc.user", userJson);
 		userCookie.setPath("/");
 		userCookie.setMaxAge(86400); // 24 hours
 		response.addCookie(userCookie);
 
-		// Redirect to frontend home
-		setDefaultTargetUrl("http://localhost:5176/#home");
+		String redirectUrl = String.format(
+				"%s/#login?oauth=success&token=%s&email=%s&name=%s&role=%s",
+				frontendUrl,
+				java.net.URLEncoder.encode(authResponse.token(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.email(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.name(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.role(), StandardCharsets.UTF_8)
+		);
+
+		setDefaultTargetUrl(redirectUrl);
 		super.onAuthenticationSuccess(request, response, authentication);
 	}
 }

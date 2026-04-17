@@ -8,7 +8,10 @@ import RegisterPage from './pages/auth/RegisterPage.jsx'
 import HomePage from './pages/home/HomePage.jsx'
 import ResourcesOverviewPage from './pages/resources/ResourcesOverviewPage.jsx'
 import TicketsOverviewPage from './pages/tickets/TicketsOverviewPage.jsx'
+import ProfilePage from './pages/profile/ProfilePage.jsx'
 import { useAuth } from './hooks/useAuth.js'
+import AdminRoute from './routes/AdminRoute.jsx'
+import ProtectedRoute from './routes/ProtectedRoute.jsx'
 
 function getRouteFromHash(hash) {
   const raw = (hash || '').replace(/^#/, '')
@@ -18,21 +21,48 @@ function getRouteFromHash(hash) {
 
 export default function App() {
   const [route, setRoute] = useState(() => getRouteFromHash(window.location.hash))
+  const { establishSession } = useAuth()
 
   useEffect(() => {
-    if (!window.location.hash) {
-      window.location.hash = '#home'
-      setRoute('home')
-      return
-    }
-
     function onHashChange() {
       setRoute(getRouteFromHash(window.location.hash))
     }
 
     window.addEventListener('hashchange', onHashChange)
+
+    const raw = (window.location.hash || '').replace(/^#/, '')
+    const [, query = ''] = raw.split('?')
+    const params = new URLSearchParams(query)
+    const token = params.get('token')
+    const email = params.get('email')
+    const name = params.get('name')
+    const role = params.get('role')
+
+    if (token) {
+      const nextRoute = role === 'ADMIN' ? 'admin' : 'home'
+      establishSession({
+        token,
+        user: {
+          name: name || email || 'SmartCampus User',
+          email: email || 'user@campus.edu',
+          username: name || email || 'user@campus.edu',
+          role: role || 'USER',
+        },
+      })
+      setRoute(nextRoute)
+      window.location.hash = `#${nextRoute}`
+      return () => window.removeEventListener('hashchange', onHashChange)
+    }
+
+    if (!window.location.hash) {
+      window.location.hash = '#home'
+      setRoute('home')
+    } else {
+      onHashChange()
+    }
+
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [])
+  }, [establishSession])
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-gray-900">
@@ -44,13 +74,25 @@ export default function App() {
         ) : route === 'register' ? (
           <RegisterPage />
         ) : route === 'admin' ? (
-          <AdminDashboardPage />
+          <AdminRoute>
+            <AdminDashboardPage />
+          </AdminRoute>
         ) : route === 'resources' ? (
-          <ResourcesOverviewPage />
+          <ProtectedRoute>
+            <ResourcesOverviewPage />
+          </ProtectedRoute>
         ) : route === 'bookings' ? (
-          <BookingsOverviewPage />
+          <ProtectedRoute>
+            <BookingsOverviewPage />
+          </ProtectedRoute>
         ) : route === 'tickets' ? (
-          <TicketsOverviewPage />
+          <ProtectedRoute>
+            <TicketsOverviewPage />
+          </ProtectedRoute>
+        ) : route === 'profile' ? (
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
         ) : (
           <HomePage />
         )}

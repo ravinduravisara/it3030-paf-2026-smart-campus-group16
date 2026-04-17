@@ -1,26 +1,36 @@
-// Placeholder auth implementation (no backend wired yet).
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
-function createFakeToken() {
-	return `dev-${Date.now()}-${Math.random().toString(16).slice(2)}`
+async function extractError(res, fallbackMessage) {
+	const text = await res.text().catch(() => '')
+	if (!text) return fallbackMessage
+
+	try {
+		const parsed = JSON.parse(text)
+		return parsed?.message || parsed?.error || fallbackMessage
+	} catch {
+		return text
+	}
 }
 
-
 async function tryBackendLogin({ username, password }) {
-	const res = await fetch('http://localhost:8080/api/auth/login', {
+	const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ username, password }),
+		credentials: 'include',
 	})
 
 	if (!res.ok) {
-		throw new Error('Login failed')
+		throw new Error(await extractError(res, 'Login failed'))
 	}
 
 	const data = await res.json()
 	return {
 		token: data.token,
 		user: {
+			name: data.name || data.username,
 			username: data.username,
+			email: data.email || data.username,
 			role: data.role,
 		},
 	}
@@ -30,59 +40,39 @@ export async function signIn({ email, username, password } = {}) {
 	const resolvedUsername = String(username || email || '').trim()
 	const resolvedPassword = String(password || '').trim()
 
-	// If username/password are provided, prefer backend auth.
-	if (resolvedUsername && resolvedPassword) {
-		try {
-			return await tryBackendLogin({ username: resolvedUsername, password: resolvedPassword })
-		} catch {
-			// Fall back to local placeholder if backend is not running.
-		}
+	if (!resolvedUsername || !resolvedPassword) {
+		throw new Error('Username and password are required')
 	}
 
-	return {
-		token: createFakeToken(),
-		user: {
-			email: resolvedUsername || 'user@campus.edu',
-			role: 'USER',
-		},
-	}
+	return tryBackendLogin({ username: resolvedUsername, password: resolvedPassword })
 }
 
 async function tryBackendSignup({ studentId, name, email, password, profilePhoto }) {
-	const res = await fetch('http://localhost:8080/api/auth/signup', {
+	const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ studentId, name, email, password, profilePhoto }),
+		credentials: 'include',
 	})
 
 	if (!res.ok) {
-		throw new Error('Signup failed')
+		throw new Error(await extractError(res, 'Signup failed'))
 	}
 
 	const data = await res.json()
 	return {
 		token: data.token,
 		user: {
-			email: data.username,
+			name: data.name || name,
+			username: data.username,
+			email: data.email || data.username,
 			role: data.role,
 		},
 	}
 }
 
 export async function signUp({ studentId, name, email, password, profilePhoto }) {
-	try {
-		return await tryBackendSignup({ studentId, name, email, password, profilePhoto })
-	} catch {
-		// Fall back to local placeholder
-		return {
-			token: createFakeToken(),
-			user: {
-				name,
-				email,
-				role: 'USER',
-			},
-		}
-	}
+	return tryBackendSignup({ studentId, name, email, password, profilePhoto })
 }
 
 export async function signInAsAdmin() {

@@ -1,12 +1,27 @@
+import { getAccessToken } from './tokenService.js'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
-async function request(path, options) {
+function buildHeaders(options = {}) {
+	const headers = new Headers(options.headers || {})
+	const token = getAccessToken()
+
+	if (token) {
+		headers.set('Authorization', `Bearer ${token}`)
+	}
+
+	if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+		headers.set('Content-Type', 'application/json')
+	}
+
+	return headers
+}
+
+async function request(path, options = {}) {
 	const res = await fetch(`${API_BASE_URL}${path}`, {
-		headers: {
-			'Content-Type': 'application/json',
-			...(options?.headers || {}),
-		},
 		...options,
+		headers: buildHeaders(options),
+		credentials: 'include',
 	})
 
 	if (!res.ok) {
@@ -14,9 +29,14 @@ async function request(path, options) {
 		throw new Error(text || `Request failed: ${res.status}`)
 	}
 
-	// 204 No Content
 	if (res.status === 204) return null
-	return res.json()
+
+	const contentType = res.headers.get('content-type') || ''
+	if (contentType.includes('application/json')) {
+		return res.json()
+	}
+
+	return res.text()
 }
 
 export function getJson(path) {

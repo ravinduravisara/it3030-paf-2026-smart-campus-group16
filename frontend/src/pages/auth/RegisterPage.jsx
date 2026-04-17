@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { useAuth } from '../../hooks/useAuth.js'
 import { signUp } from '../../services/authService.js'
 
 export default function RegisterPage() {
-	const { establishSession } = useAuth()
 	const [busy, setBusy] = useState(false)
+	const [error, setError] = useState('')
 
 	async function handleSignUp(e) {
 		e.preventDefault()
@@ -19,20 +18,22 @@ export default function RegisterPage() {
 		const profilePhotoFile = formData.get('profilePhoto')
 
 		if (!studentId || !name || !email || !password || password !== confirmPassword) {
-			alert('Please fill all fields and ensure passwords match.')
+			setError('Please fill all fields and ensure passwords match.')
 			return
 		}
 
 		let profilePhoto = null
-		if (profilePhotoFile) {
+		if (profilePhotoFile && profilePhotoFile.size > 0) {
 			profilePhoto = await toBase64(profilePhotoFile)
 		}
 
 		setBusy(true)
+		setError('')
 		try {
-			const result = await signUp({ studentId, name, email, password, profilePhoto })
-			establishSession(result)
-			window.location.hash = '#home'
+			await signUp({ studentId, name, email, password, profilePhoto })
+			window.location.hash = '#login?registered=success'
+		} catch (err) {
+			setError(err?.message || 'Registration failed')
 		} finally {
 			setBusy(false)
 		}
@@ -64,6 +65,11 @@ export default function RegisterPage() {
 					</div>
 
 					<div className="p-6">
+						{error ? (
+							<div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+								{error}
+							</div>
+						) : null}
 						<form className="space-y-4" onSubmit={handleSignUp}>
 							<div>
 								<label className="text-sm font-medium text-gray-700">Student ID</label>

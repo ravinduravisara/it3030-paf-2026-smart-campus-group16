@@ -1,22 +1,23 @@
 import { useAuth } from '../../hooks/useAuth.js'
 
+function getProfileLabel(user) {
+  return user?.name || user?.username || user?.email || 'Profile'
+}
+
 export default function Navbar() {
-  const { isAuthenticated, user, logout } = useAuth()
+  const { isAuthenticated, user } = useAuth()
 
   const isAdmin = user?.role === 'ADMIN'
 
   const navItems = [
-    ...(isAuthenticated && isAdmin ? [{ label: 'Dashboard', href: '#admin' }] : []),
     { label: 'Home', href: '#home' },
-    { label: 'Resources', href: '#resources' },
-    { label: 'Bookings', href: '#bookings' },
-    { label: 'Tickets', href: '#tickets' },
+    ...(isAuthenticated ? [
+      { label: 'Resources', href: '#resources' },
+      { label: 'Bookings', href: '#bookings' },
+      { label: 'Tickets', href: '#tickets' },
+    ] : []),
+    ...(isAuthenticated && isAdmin ? [{ label: 'Dashboard', href: '#admin' }] : []),
   ]
-
-  function handleLogout() {
-    logout()
-    window.location.hash = '#home'
-  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-violet-200/70 bg-gradient-to-r from-violet-50/95 via-purple-50/90 to-fuchsia-50/80 backdrop-blur-xl">
@@ -59,13 +60,12 @@ export default function Navbar() {
               Login
             </a>
           ) : (
-            <button
+            <a
+              href="#profile"
               className="rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 px-6 py-3 text-base font-bold text-white shadow-lg shadow-violet-400/30 transition hover:scale-[1.02]"
-              type="button"
-              onClick={handleLogout}
             >
-              Logout
-            </button>
+              {getProfileLabel(user)}
+            </a>
           )}
         </div>
       </div>

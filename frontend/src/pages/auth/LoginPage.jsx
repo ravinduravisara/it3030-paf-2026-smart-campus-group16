@@ -4,46 +4,62 @@ import { signIn } from '../../services/authService.js'
 
 export default function LoginPage() {
 	const { isAuthenticated, user, establishSession, logout } = useAuth()
-	const [mode, setMode] = useState('student') // 'student' or 'admin'
+	const [mode, setMode] = useState('student')
 	const [busy, setBusy] = useState(false)
+	const [error, setError] = useState('')
+	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+	const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+	const googleLoginUrl = isLocalDev
+		? `${apiBaseUrl}/api/auth/google/dev`
+		: `${apiBaseUrl}/oauth2/authorization/google`
+	const oauthError = window.location.hash.includes('error=oauth2')
+	const registeredSuccess = window.location.hash.includes('registered=success')
 
 	async function handleSignIn(e) {
 		e.preventDefault()
 		if (busy) return
 
 		const formData = new FormData(e.currentTarget)
-		if (mode === 'student') {
-			const studentIdOrEmail = String(formData.get('studentIdOrEmail') || '').trim()
-			const password = String(formData.get('password') || '').trim()
-			if (!studentIdOrEmail || !password) return
+		setBusy(true)
+		setError('')
 
-			setBusy(true)
-			try {
+		try {
+			if (mode === 'student') {
+				const studentIdOrEmail = String(formData.get('studentIdOrEmail') || '').trim()
+				const password = String(formData.get('password') || '').trim()
+				if (!studentIdOrEmail || !password) {
+					throw new Error('Student ID or email and password are required')
+				}
+
 				const result = await signIn({ username: studentIdOrEmail, password })
 				establishSession(result)
 				window.location.hash = '#home'
-			} finally {
-				setBusy(false)
-			}
-		} else {
-			const username = String(formData.get('username') || '').trim()
-			const password = String(formData.get('password') || '').trim()
-			if (!username || !password) return
+			} else {
+				const username = String(formData.get('username') || '').trim()
+				const password = String(formData.get('password') || '').trim()
+				if (!username || !password) {
+					throw new Error('Username and password are required')
+				}
 
-			setBusy(true)
-			try {
 				const result = await signIn({ username, password })
 				establishSession(result)
 				window.location.hash = result?.user?.role === 'ADMIN' ? '#admin' : '#home'
-			} finally {
-				setBusy(false)
 			}
+		} catch (err) {
+			setError(err?.message || 'Sign in failed')
+		} finally {
+			setBusy(false)
 		}
 	}
 
 	function handleLogout() {
 		logout()
 		window.location.hash = '#login'
+	}
+
+	function handleGoogleLogin() {
+		setError('')
+		window.location.href = googleLoginUrl
 	}
 
 	return (
@@ -79,6 +95,24 @@ export default function LoginPage() {
 					</div>
 
 					<div className="p-6">
+						{oauthError ? (
+							<div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+								Google OAuth credentials are failing in this local environment. The development sign-in fallback is available from the same button.
+							</div>
+						) : null}
+
+						{registeredSuccess ? (
+							<div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+								Registration successful. Please log in with your new account.
+							</div>
+						) : null}
+
+						{error ? (
+							<div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+								{error}
+							</div>
+						) : null}
+
 						<div className="space-y-4">
 							<div className="flex items-center gap-2 rounded-2xl bg-gray-50 p-2">
 								<button
@@ -106,7 +140,7 @@ export default function LoginPage() {
 							</div>
 							<button
 								type="button"
-								onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
+								onClick={handleGoogleLogin}
 								className="w-full rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-500"
 							>
 								Login with Google
