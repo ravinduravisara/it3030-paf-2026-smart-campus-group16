@@ -17,6 +17,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
@@ -31,6 +32,7 @@ public class ResourceService {
 		this.mongoTemplate = mongoTemplate;
 	}
 
+	@SuppressWarnings("null")
 	public List<ResourceResponse> listResources(
 			ResourceType type,
 			ResourceStatus status,
@@ -85,7 +87,7 @@ public class ResourceService {
 		return mongoTemplate.find(query, Resource.class).stream().map(ResourceService::toResponse).toList();
 	}
 
-	public ResourceResponse getResource(String id) {
+	public ResourceResponse getResource(@NonNull String id) {
 		return resourceRepository.findById(id).map(ResourceService::toResponse).orElse(null);
 	}
 
@@ -106,7 +108,7 @@ public class ResourceService {
 		return toResponse(saved);
 	}
 
-	public ResourceResponse updateResource(String id, ResourceUpdateRequest request) {
+	public ResourceResponse updateResource(@NonNull String id, ResourceUpdateRequest request) {
 		Resource resource = resourceRepository.findById(id).orElse(null);
 		if (resource == null) {
 			return null;
@@ -142,7 +144,7 @@ public class ResourceService {
 		return toResponse(saved);
 	}
 
-	public boolean deleteResource(String id) {
+	public boolean deleteResource(@NonNull String id) {
 		if (!resourceRepository.existsById(id)) {
 			return false;
 		}

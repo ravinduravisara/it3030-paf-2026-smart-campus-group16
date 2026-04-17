@@ -9,6 +9,7 @@ import com.smartcampus.booking.service.BookingService;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,7 +32,7 @@ public class BookingController {
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<BookingResponse> get(@PathVariable String id) {
+	public ResponseEntity<BookingResponse> get(@NonNull @PathVariable String id) {
 		BookingResponse booking = bookingService.getBooking(id);
 		if (booking == null) {
 			return ResponseEntity.notFound().build();
