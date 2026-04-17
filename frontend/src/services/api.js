@@ -1,59 +1,42 @@
-function resolveApiBaseUrl() {
-	const configured = String(import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/$/, '')
-	if (configured) return configured
+import { getAccessToken } from './tokenService.js'
 
-	if (typeof window === 'undefined') return ''
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
-	const protocol = window.location.protocol
-	const hostname = window.location.hostname
-	const port = window.location.port
-	const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1'
+function buildHeaders(options = {}) {
+	const headers = new Headers(options.headers || {})
+	const token = getAccessToken()
 
-	// If opened directly from disk (file://), relative /api requests fail.
-	if (protocol === 'file:' || !hostname) return 'http://localhost:8080'
-
-	// In Vite dev mode we rely on the /api proxy.
-	if (import.meta.env.DEV) return ''
-
-	// For local preview/static hosting (for example :4173), call backend directly.
-	if (isLocalHost && port !== '8080') return 'http://localhost:8080'
-
-	return ''
-}
-
-const API_BASE_URL = resolveApiBaseUrl()
-
-function buildApiUrl(path) {
-	const normalizedPath = String(path || '')
-	return `${API_BASE_URL}${normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`}`
-}
-
-async function request(path, options) {
-	const url = buildApiUrl(path)
-	const hasBody = options?.body != null
-	const headers = {
-		...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-		...(options?.headers || {}),
+	if (token) {
+		headers.set('Authorization', `Bearer ${token}`)
 	}
 
-	let res
-	try {
-		res = await fetch(url, { ...options, headers })
-	} catch (err) {
-		console.error('[api] fetch failed →', url, err)
-		throw new Error(
-			`Unable to reach the API server (${err?.message || 'network error'}). URL: ${url}`,
-		)
+	if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+		headers.set('Content-Type', 'application/json')
 	}
+
+	return headers
+}
+
+async function request(path, options = {}) {
+	const res = await fetch(`${API_BASE_URL}${path}`, {
+		...options,
+		headers: buildHeaders(options),
+		credentials: 'include',
+	})
 
 	if (!res.ok) {
 		const text = await res.text().catch(() => '')
 		throw new Error(text || `Request failed: ${res.status}`)
 	}
 
-	// 204 No Content
 	if (res.status === 204) return null
-	return res.json()
+
+	const contentType = res.headers.get('content-type') || ''
+	if (contentType.includes('application/json')) {
+		return res.json()
+	}
+
+	return res.text()
 }
 
 export function getJson(path) {
@@ -70,6 +53,13 @@ export function postJson(path, body) {
 export function putJson(path, body) {
 	return request(path, {
 		method: 'PUT',
+		body: JSON.stringify(body ?? {}),
+	})
+}
+
+export function patchJson(path, body) {
+	return request(path, {
+		method: 'PATCH',
 		body: JSON.stringify(body ?? {}),
 	})
 }

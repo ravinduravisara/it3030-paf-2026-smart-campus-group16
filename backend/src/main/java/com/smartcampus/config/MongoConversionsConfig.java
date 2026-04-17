@@ -11,12 +11,10 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.ReadingConverter;
 import org.springframework.data.convert.WritingConverter;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
-import org.springframework.lang.NonNull;
 
 @Configuration
 public class MongoConversionsConfig {
 	@Bean
-	@SuppressWarnings("null")
 	public MongoCustomConversions mongoCustomConversions() {
 		return new MongoCustomConversions(List.of(
 				new StringToResourceStatusConverter(),
@@ -27,10 +25,14 @@ public class MongoConversionsConfig {
 	@ReadingConverter
 	static class StringToResourceStatusConverter implements Converter<String, ResourceStatus> {
 		@Override
-		public ResourceStatus convert(@NonNull String source) {
+		public ResourceStatus convert(String source) {
+			if (source == null) {
+				return null;
+			}
+
 			String normalized = source.trim();
 			if (normalized.isEmpty()) {
-				return ResourceStatus.ACTIVE;
+				return null;
 			}
 
 			normalized = normalized.toUpperCase(Locale.ROOT);
@@ -46,8 +48,8 @@ public class MongoConversionsConfig {
 	@WritingConverter
 	static class ResourceStatusToStringConverter implements Converter<ResourceStatus, String> {
 		@Override
-		public String convert(@NonNull ResourceStatus source) {
-			return source.name();
+		public String convert(ResourceStatus source) {
+			return source != null ? source.name() : null;
 		}
 	}
 }

@@ -9,7 +9,6 @@ import com.smartcampus.ticket.model.TicketPriority;
 import com.smartcampus.ticket.model.TicketStatus;
 import com.smartcampus.ticket.repository.TicketRepository;
 
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,7 +23,7 @@ public class TicketService {
 		return ticketRepository.findAll().stream().map(TicketService::toResponse).toList();
 	}
 
-	public TicketResponse getTicket(@NonNull String id) {
+	public TicketResponse getTicket(String id) {
 		return ticketRepository.findById(id).map(TicketService::toResponse).orElse(null);
 	}
 

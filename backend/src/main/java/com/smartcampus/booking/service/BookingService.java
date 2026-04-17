@@ -8,7 +8,6 @@ import com.smartcampus.booking.model.Booking;
 import com.smartcampus.booking.model.BookingStatus;
 import com.smartcampus.booking.repository.BookingRepository;
 
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,7 +22,7 @@ public class BookingService {
 		return bookingRepository.findAll().stream().map(BookingService::toResponse).toList();
 	}
 
-	public BookingResponse getBooking(@NonNull String id) {
+	public BookingResponse getBooking(String id) {
 		return bookingRepository.findById(id).map(BookingService::toResponse).orElse(null);
 	}
 

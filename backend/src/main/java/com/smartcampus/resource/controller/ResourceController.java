@@ -12,7 +12,6 @@ import com.smartcampus.resource.service.ResourceService;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,7 +43,7 @@ public class ResourceController {
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<ResourceResponse> get(@NonNull @PathVariable String id) {
+	public ResponseEntity<ResourceResponse> get(@PathVariable String id) {
 		ResourceResponse resource = resourceService.getResource(id);
 		if (resource == null) {
 			return ResponseEntity.notFound().build();
@@ -59,7 +58,7 @@ public class ResourceController {
 
 	@PutMapping("/{id}")
 	public ResponseEntity<ResourceResponse> update(
-			@NonNull @PathVariable String id,
+			@PathVariable String id,
 			@RequestBody ResourceUpdateRequest request
 	) {
 		ResourceResponse updated = resourceService.updateResource(id, request);
@@ -70,7 +69,7 @@ public class ResourceController {
 	}
 
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> delete(@NonNull @PathVariable String id) {
+	public ResponseEntity<Void> delete(@PathVariable String id) {
 		boolean deleted = resourceService.deleteResource(id);
 		if (!deleted) {
 			return ResponseEntity.notFound().build();
