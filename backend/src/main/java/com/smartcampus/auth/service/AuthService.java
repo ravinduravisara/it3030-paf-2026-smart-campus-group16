@@ -1,7 +1,6 @@
 package com.smartcampus.auth.service;
 
 import java.security.SecureRandom;
-import java.util.Map;
 import java.util.Objects;
 
 import com.smartcampus.auth.dto.AuthLoginRequest;
@@ -15,6 +14,7 @@ import com.smartcampus.user.repository.UserRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -25,17 +25,21 @@ public class AuthService {
 	private final UserRepository userRepository;
 	private final JwtUtil jwtUtil;
 	private final OtpDeliveryService otpDeliveryService;
+    private final String adminUsername;
+    private final String adminPassword;
 
-	public AuthService(UserRepository userRepository, JwtUtil jwtUtil, OtpDeliveryService otpDeliveryService) {
+	public AuthService(
+			UserRepository userRepository,
+			JwtUtil jwtUtil,
+			OtpDeliveryService otpDeliveryService,
+			@Value("${app.admin.username:admin}") String adminUsername,
+			@Value("${app.admin.password:admin123}") String adminPassword) {
 		this.userRepository = userRepository;
 		this.jwtUtil = jwtUtil;
 		this.otpDeliveryService = otpDeliveryService;
+		this.adminUsername = adminUsername;
+		this.adminPassword = adminPassword;
 	}
-
-	private static final Map<String, TempAccount> TEMP_ACCOUNTS = Map.of(
-			"admin", new TempAccount("admin", "admin123", "ADMIN"),
-			"user", new TempAccount("user", "user123", "USER")
-	);
 
 	public AuthResponse login(AuthLoginRequest request) {
 		if (request == null || request.username() == null || request.password() == null) {
@@ -46,10 +50,9 @@ public class AuthService {
 		String normalizedIdentifier = identifier.toLowerCase();
 		String password = request.password();
 
-		TempAccount account = TEMP_ACCOUNTS.get(normalizedIdentifier);
-		if (account != null && Objects.equals(account.password(), password)) {
-			String token = jwtUtil.generateToken(account.username(), account.role());
-			return new AuthResponse(token, account.username(), account.role(), account.username(), account.username(), "Login successful.");
+		if (normalizedIdentifier.equals(adminUsername.toLowerCase()) && Objects.equals(adminPassword, password)) {
+			String token = jwtUtil.generateToken(adminUsername, "ADMIN");
+			return new AuthResponse(token, adminUsername, "ADMIN", adminUsername, adminUsername, "Admin login successful.");
 		}
 
 		User user = findUserByIdentifier(identifier);
@@ -213,9 +216,6 @@ public class AuthService {
 		user.setVerified(false);
 		userRepository.save(user);
 		return otpDeliveryService.sendOtp(user.getEmail(), displayNameFor(user), otp);
-	}
-
-	private record TempAccount(String username, String password, String role) {
 	}
 
 }
