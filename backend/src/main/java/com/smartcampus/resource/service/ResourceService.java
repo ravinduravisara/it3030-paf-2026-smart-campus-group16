@@ -90,33 +90,14 @@ public class ResourceService {
 	}
 
 	public ResourceResponse createResource(ResourceCreateRequest request) {
-		String name = request.name().trim();
-		if (name.isEmpty() || name.length() < 2) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name must be at least 2 characters");
-		}
-		if (name.length() > 200) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name must not exceed 200 characters");
-		}
-
 		Resource resource = new Resource();
-		resource.setName(name);
+		resource.setName(request.name());
 		resource.setType(request.type());
 		resource.setCapacity(request.capacity());
 		resource.setStatus(request.status() != null ? request.status() : ResourceStatus.ACTIVE);
-		resource.setDescription(request.description() != null ? request.description().trim() : null);
-		resource.setLocation(request.location() != null ? request.location().trim() : null);
-
-		if (resource.getDescription() != null && resource.getDescription().length() > 1000) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Description must not exceed 1000 characters");
-		}
-		if (resource.getLocation() != null && resource.getLocation().length() > 300) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Location must not exceed 300 characters");
-		}
-
+		resource.setDescription(request.description());
+		resource.setLocation(request.location());
 		if (request.availabilityWindows() != null) {
-			if (request.availabilityWindows().size() > 20) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maximum 20 availability windows allowed");
-			}
 			validateAvailabilityWindows(request.availabilityWindows());
 			resource.setAvailabilityWindows(request.availabilityWindows());
 		}
@@ -132,24 +113,14 @@ public class ResourceService {
 		}
 
 		if (request.name() != null) {
-			String name = request.name().trim();
-			if (name.isEmpty() || name.length() < 2) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name must be at least 2 characters");
-			}
-			if (name.length() > 200) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name must not exceed 200 characters");
-			}
-			resource.setName(name);
+			resource.setName(request.name());
 		}
 		if (request.type() != null) {
 			resource.setType(request.type());
 		}
 		if (request.capacity() != null) {
 			if (request.capacity() <= 0) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Capacity must be positive");
-			}
-			if (request.capacity() > 100000) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Capacity must not exceed 100000");
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "capacity must be positive");
 			}
 			resource.setCapacity(request.capacity());
 		}
@@ -157,23 +128,12 @@ public class ResourceService {
 			resource.setStatus(request.status());
 		}
 		if (request.description() != null) {
-			String desc = request.description().trim();
-			if (desc.length() > 1000) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Description must not exceed 1000 characters");
-			}
-			resource.setDescription(desc);
+			resource.setDescription(request.description());
 		}
 		if (request.location() != null) {
-			String loc = request.location().trim();
-			if (loc.length() > 300) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Location must not exceed 300 characters");
-			}
-			resource.setLocation(loc);
+			resource.setLocation(request.location());
 		}
 		if (request.availabilityWindows() != null) {
-			if (request.availabilityWindows().size() > 20) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maximum 20 availability windows allowed");
-			}
 			validateAvailabilityWindows(request.availabilityWindows());
 			resource.setAvailabilityWindows(request.availabilityWindows());
 		}
@@ -191,24 +151,15 @@ public class ResourceService {
 	}
 
 	private static void validateAvailabilityWindows(List<AvailabilityWindow> windows) {
-		for (int i = 0; i < windows.size(); i++) {
-			AvailabilityWindow window = windows.get(i);
+		for (AvailabilityWindow window : windows) {
 			if (window == null) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Availability window " + (i + 1) + " is null");
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "availabilityWindows contains null item");
 			}
 			if (window.start() == null || window.end() == null) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Availability window " + (i + 1) + " requires both start and end");
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "availabilityWindows requires start and end");
 			}
 			if (!window.start().isBefore(window.end())) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Availability window " + (i + 1) + ": start must be before end");
-			}
-			// Check for overlaps with previous windows
-			for (int j = 0; j < i; j++) {
-				AvailabilityWindow other = windows.get(j);
-				if (window.start().isBefore(other.end()) && other.start().isBefore(window.end())) {
-					throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-							"Availability windows " + (j + 1) + " and " + (i + 1) + " overlap");
-				}
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "availabilityWindows requires start < end");
 			}
 		}
 	}
