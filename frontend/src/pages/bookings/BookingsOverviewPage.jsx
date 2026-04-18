@@ -30,15 +30,19 @@ export default function BookingsOverviewPage() {
   const [reviewBooking, setReviewBooking] = useState(null)
   const [cancelId, setCancelId] = useState(null)
   const [cancelReason, setCancelReason] = useState('')
+  const [actionError, setActionError] = useState('')
 
   const filterForApi = tab === 'review' && statusFilter ? statusFilter : undefined
   const { bookings, loading, error, reload, create, decide, cancel } = useBookings(filterForApi)
 
   async function handleCreate(data) {
     setCreating(true)
+    setActionError('')
     try {
       await create(data)
       setTab('my')
+    } catch (err) {
+      throw err
     } finally {
       setCreating(false)
     }
@@ -50,15 +54,28 @@ export default function BookingsOverviewPage() {
   }
 
   async function handleDecideSubmit(id, action, reason) {
-    await decide(id, action, reason)
-    setReviewBooking(null)
+    setActionError('')
+    try {
+      await decide(id, action, reason)
+      setReviewBooking(null)
+    } catch (err) {
+      setActionError(extractError(err))
+      setReviewBooking(null)
+    }
   }
 
   async function handleCancelSubmit() {
     if (!cancelId) return
-    await cancel(cancelId, cancelReason)
-    setCancelId(null)
-    setCancelReason('')
+    setActionError('')
+    try {
+      await cancel(cancelId, cancelReason)
+      setCancelId(null)
+      setCancelReason('')
+    } catch (err) {
+      setActionError(extractError(err))
+      setCancelId(null)
+      setCancelReason('')
+    }
   }
 
   const myBookings = bookings
@@ -92,6 +109,10 @@ export default function BookingsOverviewPage() {
 
       {error && (
         <div className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+      )}
+
+      {actionError && (
+        <div className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{actionError}</div>
       )}
 
       {/* My Bookings tab */}
@@ -185,10 +206,12 @@ export default function BookingsOverviewPage() {
             <textarea
               value={cancelReason}
               onChange={e => setCancelReason(e.target.value)}
-              placeholder="Reason (optional)"
+              placeholder="Reason (optional, max 500 characters)"
               rows={2}
+              maxLength={500}
               className="mt-4 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
             />
+            <p className="mt-1 text-right text-xs text-gray-400">{cancelReason.length}/500</p>
             <div className="mt-5 flex justify-end gap-3">
               <button
                 onClick={() => { setCancelId(null); setCancelReason('') }}
@@ -208,4 +231,13 @@ export default function BookingsOverviewPage() {
       )}
     </section>
   )
+}
+
+function extractError(err) {
+  try {
+    const data = JSON.parse(err.message)
+    return data.error || data.message || err.message
+  } catch {
+    return err.message || 'Something went wrong'
+  }
 }

@@ -4,15 +4,31 @@ export default function BookingApprovalModal({ booking, onClose, onSubmit }) {
   const [action, setAction] = useState('')
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   if (!booking) return null
 
   async function handleSubmit() {
+    setError('')
+    if (!action) {
+      setError('Please select an action.')
+      return
+    }
+    if (reason.length > 500) {
+      setError('Reason must not exceed 500 characters.')
+      return
+    }
     setSubmitting(true)
     try {
       await onSubmit(booking.id, action, reason)
       onClose()
-    } catch {
+    } catch (err) {
+      try {
+        const data = JSON.parse(err.message)
+        setError(data.error || data.message || err.message)
+      } catch {
+        setError(err.message || 'Something went wrong')
+      }
       setSubmitting(false)
     }
   }
@@ -53,12 +69,18 @@ export default function BookingApprovalModal({ booking, onClose, onSubmit }) {
         <textarea
           value={reason}
           onChange={e => setReason(e.target.value)}
-          placeholder="Reason (optional)"
+          placeholder="Reason (optional, max 500 characters)"
           rows={3}
+          maxLength={500}
           className="mt-4 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
         />
+        <p className="mt-1 text-right text-xs text-gray-400">{reason.length}/500</p>
 
-        <div className="mt-6 flex justify-end gap-3">
+        {error && (
+          <div className="mt-3 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+        )}
+
+        <div className="mt-4 flex justify-end gap-3">
           <button
             onClick={onClose}
             className="rounded-xl border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
