@@ -1,5 +1,9 @@
 package com.smartcampus.ticket.dto;
 
-public class TicketAssignRequest {
-  
+import jakarta.validation.constraints.NotBlank;
+
+public record TicketAssignRequest(
+		@NotBlank(message = "Assignee username is required")
+		String assignedTo
+) {
 }
