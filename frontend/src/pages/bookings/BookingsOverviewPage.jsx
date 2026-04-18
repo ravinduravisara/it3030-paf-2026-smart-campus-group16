@@ -1,138 +1,211 @@
-import { useEffect, useState } from 'react'
-import { ClipboardList, Clock3, UserCheck } from 'lucide-react'
-import { getJson, postJson } from '../../services/api.js'
+import { useState } from 'react'
+import { CalendarPlus, ClipboardList, ListChecks } from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth.js'
+import { useBookings } from '../../hooks/useBookings.js'
+import BookingCard from '../../components/booking/BookingCard.jsx'
+import BookingTable from '../../components/booking/BookingTable.jsx'
+import BookingForm from '../../components/forms/BookingForm.jsx'
+import BookingApprovalModal from '../../components/booking/BookingApprovalModal.jsx'
+
+const TABS = [
+  { key: 'my', label: 'My Bookings', icon: ClipboardList },
+  { key: 'create', label: 'New Booking', icon: CalendarPlus },
+]
+
+const ADMIN_TABS = [
+  ...TABS,
+  { key: 'review', label: 'Review Bookings', icon: ListChecks },
+]
+
+const STATUS_OPTIONS = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']
 
 export default function BookingsOverviewPage() {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
+  const tabs = isAdmin ? ADMIN_TABS : TABS
 
-  async function load() {
-    setLoading(true)
-    setError('')
+  const [tab, setTab] = useState('my')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [reviewBooking, setReviewBooking] = useState(null)
+  const [cancelId, setCancelId] = useState(null)
+  const [cancelReason, setCancelReason] = useState('')
+
+  const filterForApi = tab === 'review' && statusFilter ? statusFilter : undefined
+  const { bookings, loading, error, reload, create, decide, cancel } = useBookings(filterForApi)
+
+  async function handleCreate(data) {
+    setCreating(true)
     try {
-      const data = await getJson('/api/bookings')
-      setItems(Array.isArray(data) ? data : [])
-    } catch (e) {
-      setError(e?.message || 'Failed to load bookings')
+      await create(data)
+      setTab('my')
     } finally {
-      setLoading(false)
+      setCreating(false)
     }
   }
 
-  useEffect(() => {
-    load()
-  }, [])
-
-  async function handleCreate(e) {
-    e.preventDefault()
-    if (busy) return
-
-    const formData = new FormData(e.currentTarget)
-    const resourceId = String(formData.get('resourceId') || '').trim()
-    const requestedBy = String(formData.get('requestedBy') || '').trim()
-    if (!resourceId || !requestedBy) return
-
-    setBusy(true)
-    setError('')
-    try {
-      await postJson('/api/bookings', { resourceId, requestedBy })
-      e.currentTarget.reset()
-      await load()
-    } catch (e2) {
-      setError(e2?.message || 'Failed to create booking')
-    } finally {
-      setBusy(false)
-    }
+  async function handleDecide(id, action) {
+    const booking = bookings.find(b => b.id === id)
+    if (booking) setReviewBooking(booking)
   }
+
+  async function handleDecideSubmit(id, action, reason) {
+    await decide(id, action, reason)
+    setReviewBooking(null)
+  }
+
+  async function handleCancelSubmit() {
+    if (!cancelId) return
+    await cancel(cancelId, cancelReason)
+    setCancelId(null)
+    setCancelReason('')
+  }
+
+  const myBookings = bookings
 
   return (
     <section id="bookings" className="mt-2">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-600">
-            Bookings
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-600">Bookings</p>
           <h2 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
-            Recent booking activity
+            Booking Management
           </h2>
         </div>
-        <div className="rounded-full bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
-          Stored in MongoDB
-        </div>
       </div>
 
-      <form onSubmit={handleCreate} className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div>
-            <label className="text-sm font-medium text-gray-700">Resource ID</label>
-            <input
-              name="resourceId"
-              required
-              placeholder="Paste a resource id"
-              className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">Requested by</label>
-            <input
-              name="requestedBy"
-              required
-              placeholder="e.g., user"
-              className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
-            />
-          </div>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {busy ? 'Saving…' : 'Create Booking'}
-            </button>
-          </div>
-        </div>
-        {error ? <p className="mt-3 text-sm font-medium text-rose-600">{error}</p> : null}
-      </form>
+      {/* Tab bar */}
+      <div className="mt-6 flex gap-1 rounded-2xl bg-gray-100 p-1">
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => { setTab(t.key); if (t.key !== 'review') setStatusFilter('') }}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              tab === t.key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <t.icon className="h-4 w-4" />
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {loading ? (
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
-            Loading bookings…
-          </div>
-        ) : items.length === 0 ? (
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">
-            No bookings found. Create one above.
-          </div>
-        ) : (
-          items.map((b) => (
-            <div key={b.id} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-indigo-50 p-3 text-indigo-600">
-                  {b.status === 'APPROVED' ? (
-                    <UserCheck className="h-5 w-5" />
-                  ) : b.status === 'CANCELLED' || b.status === 'REJECTED' ? (
-                    <ClipboardList className="h-5 w-5" />
-                  ) : (
-                    <Clock3 className="h-5 w-5" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">Booking</h3>
-                  <p className="text-sm text-gray-600">Requested by {b.requestedBy}</p>
-                </div>
-              </div>
-              <div className="mt-5 space-y-2 text-sm text-gray-600">
-                <p>Resource ID: {b.resourceId}</p>
-              </div>
-              <div className="mt-5 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                {b.status}
-              </div>
+      {error && (
+        <div className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+      )}
+
+      {/* My Bookings tab */}
+      {tab === 'my' && (
+        <div className="mt-6">
+          {loading ? (
+            <p className="py-12 text-center text-sm text-gray-400">Loading bookings…</p>
+          ) : myBookings.length === 0 ? (
+            <div className="rounded-3xl border border-gray-200 bg-white py-16 text-center shadow-sm">
+              <ClipboardList className="mx-auto h-10 w-10 text-gray-300" />
+              <p className="mt-3 text-sm text-gray-500">No bookings yet. Create one to get started!</p>
+              <button
+                onClick={() => setTab('create')}
+                className="mt-4 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              >
+                New Booking
+              </button>
             </div>
-          ))
-        )}
-      </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+              {myBookings.map(b => (
+                <BookingCard
+                  key={b.id}
+                  booking={b}
+                  isAdmin={false}
+                  onCancel={(id) => { setCancelId(id); setCancelReason('') }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Create Booking tab */}
+      {tab === 'create' && (
+        <div className="mt-6 mx-auto max-w-2xl rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-900">Create a New Booking</h3>
+          <p className="mb-6 text-sm text-gray-500">Select a resource and pick your time slot.</p>
+          <BookingForm onSubmit={handleCreate} loading={creating} />
+        </div>
+      )}
+
+      {/* Admin Review tab */}
+      {tab === 'review' && isAdmin && (
+        <div className="mt-6">
+          {/* Filter bar */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            {STATUS_OPTIONS.map(s => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s === 'ALL' ? '' : s)}
+                className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
+                  (s === 'ALL' && !statusFilter) || statusFilter === s
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <p className="py-12 text-center text-sm text-gray-400">Loading bookings…</p>
+          ) : (
+            <BookingTable
+              bookings={bookings}
+              isAdmin
+              onDecide={handleDecide}
+              onCancel={(id) => { setCancelId(id); setCancelReason('') }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Approval modal */}
+      {reviewBooking && (
+        <BookingApprovalModal
+          booking={reviewBooking}
+          onClose={() => setReviewBooking(null)}
+          onSubmit={handleDecideSubmit}
+        />
+      )}
+
+      {/* Cancel confirmation dialog */}
+      {cancelId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-8 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900">Cancel Booking</h3>
+            <p className="mt-1 text-sm text-gray-500">Are you sure you want to cancel this booking?</p>
+            <textarea
+              value={cancelReason}
+              onChange={e => setCancelReason(e.target.value)}
+              placeholder="Reason (optional)"
+              rows={2}
+              className="mt-4 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => { setCancelId(null); setCancelReason('') }}
+                className="rounded-xl border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Keep
+              </button>
+              <button
+                onClick={handleCancelSubmit}
+                className="rounded-xl bg-rose-600 px-5 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+              >
+                Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
