@@ -2,6 +2,7 @@ package com.smartcampus.user.service;
 
 import java.util.List;
 
+import com.smartcampus.user.dto.ProfileUpdateRequest;
 import com.smartcampus.user.model.User;
 import com.smartcampus.user.repository.UserRepository;
 
@@ -40,5 +41,32 @@ public class UserService {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 		user.setBlocked(user.getBlocked() == null || !user.getBlocked());
 		return userRepository.save(user);
+	}
+
+	public User findByEmail(String email) {
+		User user = userRepository.findByEmailIgnoreCase(email);
+		if (user == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+		}
+		return user;
+	}
+
+	public User updateProfile(String email, ProfileUpdateRequest request) {
+		User user = findByEmail(email);
+		if (request.username() != null) {
+			user.setUsername(request.username().trim());
+		}
+		if (request.studentId() != null) {
+			user.setStudentId(request.studentId().trim());
+		}
+		if (request.profilePhoto() != null) {
+			user.setProfilePhoto(request.profilePhoto());
+		}
+		return userRepository.save(user);
+	}
+
+	public void deleteByEmail(String email) {
+		User user = findByEmail(email);
+		userRepository.deleteById(user.getId());
 	}
 }

@@ -4,6 +4,63 @@ import { signUp } from '../../services/authService.js'
 export default function RegisterPage() {
 	const [busy, setBusy] = useState(false)
 	const [error, setError] = useState('')
+	const [fieldErrors, setFieldErrors] = useState({})
+	const [showPassword, setShowPassword] = useState(false)
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+	function validate(fields) {
+		const errs = {}
+
+		if (!fields.studentId) {
+			errs.studentId = 'Student ID is required.'
+		} else if (!/^IT\d{8}$/.test(fields.studentId)) {
+			errs.studentId = 'Student ID must follow the format IT followed by 8 digits (e.g. IT23546134).'
+		}
+
+		if (!fields.name) {
+			errs.name = 'Full name is required.'
+		} else if (fields.name.length < 2) {
+			errs.name = 'Name must be at least 2 characters.'
+		} else if (fields.name.length > 100) {
+			errs.name = 'Name must not exceed 100 characters.'
+		}
+
+		if (!fields.email) {
+			errs.email = 'Email is required.'
+		} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) {
+			errs.email = 'Please enter a valid email address.'
+		}
+
+		if (!fields.password) {
+			errs.password = 'Password is required.'
+		} else if (fields.password.length < 8) {
+			errs.password = 'Password must be at least 8 characters.'
+		} else if (!/[A-Z]/.test(fields.password)) {
+			errs.password = 'Password must contain at least one uppercase letter.'
+		} else if (!/[a-z]/.test(fields.password)) {
+			errs.password = 'Password must contain at least one lowercase letter.'
+		} else if (!/[0-9]/.test(fields.password)) {
+			errs.password = 'Password must contain at least one number.'
+		} else if (!/[^A-Za-z0-9]/.test(fields.password)) {
+			errs.password = 'Password must contain at least one special character.'
+		}
+
+		if (!fields.confirmPassword) {
+			errs.confirmPassword = 'Please confirm your password.'
+		} else if (fields.password !== fields.confirmPassword) {
+			errs.confirmPassword = 'Passwords do not match.'
+		}
+
+		if (fields.profilePhoto && fields.profilePhoto.size > 0) {
+			if (fields.profilePhoto.size > 5 * 1024 * 1024) {
+				errs.profilePhoto = 'Photo must not exceed 5 MB.'
+			} else if (!fields.profilePhoto.type.startsWith('image/')) {
+				errs.profilePhoto = 'Only image files are allowed.'
+			}
+		}
+
+		return errs
+	}
 
 	async function handleSignUp(e) {
 		e.preventDefault()
@@ -13,12 +70,14 @@ export default function RegisterPage() {
 		const studentId = String(formData.get('studentId') || '').trim()
 		const name = String(formData.get('name') || '').trim()
 		const email = String(formData.get('email') || '').trim()
-		const password = String(formData.get('password') || '').trim()
-		const confirmPassword = String(formData.get('confirmPassword') || '').trim()
+		const password = String(formData.get('password') || '')
+		const confirmPassword = String(formData.get('confirmPassword') || '')
 		const profilePhotoFile = formData.get('profilePhoto')
 
-		if (!studentId || !name || !email || !password || password !== confirmPassword) {
-			setError('Please fill all fields and ensure passwords match.')
+		const errs = validate({ studentId, name, email, password, confirmPassword, profilePhoto: profilePhotoFile })
+		setFieldErrors(errs)
+		if (Object.keys(errs).length > 0) {
+			setError('')
 			return
 		}
 
@@ -82,8 +141,9 @@ export default function RegisterPage() {
 									type="text"
 									placeholder="e.g., 12345"
 									required
-									className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+									className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${fieldErrors.studentId ? 'border-red-400' : 'border-gray-200'}`}
 								/>
+								{fieldErrors.studentId && <p className="mt-1 text-xs text-red-600">{fieldErrors.studentId}</p>}
 							</div>
 							<div>
 								<label className="text-sm font-medium text-gray-700">Full Name</label>
@@ -92,8 +152,9 @@ export default function RegisterPage() {
 									type="text"
 									placeholder="Your full name"
 									required
-									className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+									className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${fieldErrors.name ? 'border-red-400' : 'border-gray-200'}`}
 								/>
+								{fieldErrors.name && <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>}
 							</div>
 							<div>
 								<label className="text-sm font-medium text-gray-700">Email</label>
@@ -102,28 +163,49 @@ export default function RegisterPage() {
 									type="email"
 									placeholder="student@campus.edu"
 									required
-									className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+									className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${fieldErrors.email ? 'border-red-400' : 'border-gray-200'}`}
 								/>
+								{fieldErrors.email && <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>}
 							</div>
 							<div>
 								<label className="text-sm font-medium text-gray-700">Password</label>
-								<input
-									name="password"
-									type="password"
-									placeholder="••••••••"
-									required
-									className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
-								/>
+								<div className="relative mt-2">
+									<input
+										name="password"
+										type={showPassword ? 'text' : 'password'}
+										placeholder="••••••••"
+										required
+										className={`w-full rounded-xl border bg-white px-4 py-3 pr-16 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${fieldErrors.password ? 'border-red-400' : 'border-gray-200'}`}
+									/>
+									<button
+										type="button"
+										onClick={() => setShowPassword(v => !v)}
+										className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+									>
+										{showPassword ? 'Hide' : 'Show'}
+									</button>
+								</div>
+								{fieldErrors.password && <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>}
 							</div>
 							<div>
 								<label className="text-sm font-medium text-gray-700">Confirm Password</label>
-								<input
-									name="confirmPassword"
-									type="password"
-									placeholder="••••••••"
-									required
-									className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
-								/>
+								<div className="relative mt-2">
+									<input
+										name="confirmPassword"
+										type={showConfirmPassword ? 'text' : 'password'}
+										placeholder="••••••••"
+										required
+										className={`w-full rounded-xl border bg-white px-4 py-3 pr-16 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${fieldErrors.confirmPassword ? 'border-red-400' : 'border-gray-200'}`}
+									/>
+									<button
+										type="button"
+										onClick={() => setShowConfirmPassword(v => !v)}
+										className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+									>
+										{showConfirmPassword ? 'Hide' : 'Show'}
+									</button>
+								</div>
+								{fieldErrors.confirmPassword && <p className="mt-1 text-xs text-red-600">{fieldErrors.confirmPassword}</p>}
 							</div>
 							<div>
 								<label className="text-sm font-medium text-gray-700">Profile Photo</label>
@@ -131,8 +213,9 @@ export default function RegisterPage() {
 									name="profilePhoto"
 									type="file"
 									accept="image/*"
-									className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+									className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${fieldErrors.profilePhoto ? 'border-red-400' : 'border-gray-200'}`}
 								/>
+								{fieldErrors.profilePhoto && <p className="mt-1 text-xs text-red-600">{fieldErrors.profilePhoto}</p>}
 							</div>
 							<button
 								type="submit"

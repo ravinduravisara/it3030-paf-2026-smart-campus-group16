@@ -8,6 +8,7 @@ import com.smartcampus.comment.dto.CommentResponse;
 import com.smartcampus.comment.dto.CommentUpdateRequest;
 import com.smartcampus.comment.model.Comment;
 import com.smartcampus.comment.repository.CommentRepository;
+import com.smartcampus.notification.service.NotificationService;
 import com.smartcampus.ticket.model.Ticket;
 import com.smartcampus.ticket.repository.TicketRepository;
 
@@ -19,10 +20,13 @@ import org.springframework.web.server.ResponseStatusException;
 public class CommentService {
 	private final CommentRepository commentRepository;
 	private final TicketRepository ticketRepository;
+	private final NotificationService notificationService;
 
-	public CommentService(CommentRepository commentRepository, TicketRepository ticketRepository) {
+	public CommentService(CommentRepository commentRepository, TicketRepository ticketRepository,
+						  NotificationService notificationService) {
 		this.commentRepository = commentRepository;
 		this.ticketRepository = ticketRepository;
+		this.notificationService = notificationService;
 	}
 
 	public List<CommentResponse> listByTicket(String ticketId) {
@@ -53,7 +57,19 @@ public class CommentService {
 		comment.setTicketId(ticketId);
 		comment.setAuthorUsername(username);
 		comment.setText(text);
-		return toResponse(commentRepository.save(comment));
+		Comment saved = commentRepository.save(comment);
+
+		// Notify ticket creator about the new comment (if commenter is someone else)
+		if (!username.equals(ticket.getCreatedBy())) {
+			notificationService.sendToUser(
+				ticket.getCreatedBy(),
+				"New comment on your ticket",
+				username + " commented on your ticket \"" + ticket.getTitle() + "\": " + (text.length() > 100 ? text.substring(0, 100) + "..." : text),
+				"COMMENT"
+			);
+		}
+
+		return toResponse(saved);
 	}
 
 	public CommentResponse updateComment(String commentId, CommentUpdateRequest request, String username, boolean isAdmin) {

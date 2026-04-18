@@ -12,6 +12,7 @@ import com.smartcampus.ticket.model.Ticket;
 import com.smartcampus.ticket.model.TicketPriority;
 import com.smartcampus.ticket.model.TicketStatus;
 import com.smartcampus.ticket.repository.TicketRepository;
+import com.smartcampus.notification.service.NotificationService;
 import com.smartcampus.resource.model.Resource;
 import com.smartcampus.resource.repository.ResourceRepository;
 
@@ -23,10 +24,13 @@ import org.springframework.web.server.ResponseStatusException;
 public class TicketService {
 	private final TicketRepository ticketRepository;
 	private final ResourceRepository resourceRepository;
+	private final NotificationService notificationService;
 
-	public TicketService(TicketRepository ticketRepository, ResourceRepository resourceRepository) {
+	public TicketService(TicketRepository ticketRepository, ResourceRepository resourceRepository,
+						 NotificationService notificationService) {
 		this.ticketRepository = ticketRepository;
 		this.resourceRepository = resourceRepository;
+		this.notificationService = notificationService;
 	}
 
 	public List<TicketResponse> listAllTickets() {
@@ -160,7 +164,17 @@ public class TicketService {
 
 		ticket.setStatus(newStatus);
 		ticket.setUpdatedAt(Instant.now());
-		return toResponse(ticketRepository.save(ticket));
+		Ticket saved = ticketRepository.save(ticket);
+
+		String statusLabel = newStatus.name().toLowerCase().replace('_', ' ');
+		notificationService.sendToUser(
+			saved.getCreatedBy(),
+			"Ticket " + statusLabel,
+			"Your ticket \"" + saved.getTitle() + "\" has been updated to " + statusLabel + ".",
+			"TICKET"
+		);
+
+		return toResponse(saved);
 	}
 
 	public TicketResponse assignTicket(String id, TicketAssignRequest request) {

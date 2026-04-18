@@ -11,6 +11,8 @@ import ResourcesOverviewPage from './pages/resources/ResourcesOverviewPage.jsx'
 import TicketsOverviewPage from './pages/tickets/TicketsOverviewPage.jsx'
 import ProfilePage from './pages/profile/ProfilePage.jsx'
 import UsersPage from './pages/admin/UsersPage.jsx'
+import AdminSendNotificationPage from './pages/admin/AdminSendNotificationPage.jsx'
+import NotificationsPage from './pages/notifications/NotificationsPage.jsx'
 import { useAuth } from './hooks/useAuth.js'
 import AdminRoute from './routes/AdminRoute.jsx'
 import ProtectedRoute from './routes/ProtectedRoute.jsx'
@@ -85,6 +87,10 @@ export default function App() {
           <AdminRoute>
             <UsersPage />
           </AdminRoute>
+        ) : route === 'admin/notification' ? (
+          <AdminRoute>
+            <AdminSendNotificationPage />
+          </AdminRoute>
         ) : route === 'resources' ? (
           <ProtectedRoute>
             <ResourcesOverviewPage />
@@ -100,6 +106,10 @@ export default function App() {
         ) : route === 'profile' ? (
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        ) : route === 'notifications' ? (
+          <ProtectedRoute>
+            <NotificationsPage />
           </ProtectedRoute>
         ) : (
           <HomePage />

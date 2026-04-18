@@ -68,6 +68,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/resources/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasRole("ADMIN")
                         .requestMatchers("/api/users/**", "/api/analytics/**").hasRole("ADMIN")
+                        .requestMatchers("/api/profile/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/notifications/broadcast").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/notifications/broadcasts/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/notifications/broadcasts/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/notifications/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/notifications/*/read").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/notifications/*").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oauth2LoginSuccessHandler)

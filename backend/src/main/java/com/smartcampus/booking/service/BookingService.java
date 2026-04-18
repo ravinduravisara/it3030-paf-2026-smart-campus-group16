@@ -11,6 +11,7 @@ import com.smartcampus.booking.dto.BookingResponse;
 import com.smartcampus.booking.model.Booking;
 import com.smartcampus.booking.model.BookingStatus;
 import com.smartcampus.booking.repository.BookingRepository;
+import com.smartcampus.notification.service.NotificationService;
 import com.smartcampus.resource.model.Resource;
 import com.smartcampus.resource.repository.ResourceRepository;
 
@@ -23,13 +24,16 @@ public class BookingService {
 	private final BookingRepository bookingRepository;
 	private final BookingConflictService conflictService;
 	private final ResourceRepository resourceRepository;
+	private final NotificationService notificationService;
 
 	public BookingService(BookingRepository bookingRepository,
 						  BookingConflictService conflictService,
-						  ResourceRepository resourceRepository) {
+						  ResourceRepository resourceRepository,
+						  NotificationService notificationService) {
 		this.bookingRepository = bookingRepository;
 		this.conflictService = conflictService;
 		this.resourceRepository = resourceRepository;
+		this.notificationService = notificationService;
 	}
 
 	public List<BookingResponse> listAllBookings() {
@@ -100,7 +104,17 @@ public class BookingService {
 		booking.setDecisionBy(adminUsername);
 		booking.setDecisionReason(request.reason());
 		booking.setDecisionAt(Instant.now());
-		return toResponse(bookingRepository.save(booking));
+		Booking saved = bookingRepository.save(booking);
+
+		String statusLabel = saved.getStatus() == BookingStatus.APPROVED ? "approved" : "rejected";
+		String notifTitle = "Booking " + statusLabel;
+		String notifMsg = "Your booking for " + saved.getResourceName() + " on " + saved.getDate() + " has been " + statusLabel + ".";
+		if (request.reason() != null && !request.reason().isBlank()) {
+			notifMsg += " Reason: " + request.reason().trim();
+		}
+		notificationService.sendToUser(saved.getRequestedBy(), notifTitle, notifMsg, "BOOKING");
+
+		return toResponse(saved);
 	}
 
 	public BookingResponse cancel(String id, BookingCancelRequest request, String username, boolean isAdmin) {

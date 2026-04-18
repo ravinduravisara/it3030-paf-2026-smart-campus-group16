@@ -26,6 +26,12 @@ const quickActions = [
     desc: 'Monitor accounts, permissions, and access status.',
     href: '#users',
     icon: '👥'
+  },
+  {
+    title: 'Send notification',
+    desc: 'Send a notification to all users.',
+    href: '#admin/notification',
+    icon: '🔔'
   }
 ]
 
