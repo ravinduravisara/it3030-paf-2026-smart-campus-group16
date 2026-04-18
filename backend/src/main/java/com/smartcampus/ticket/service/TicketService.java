@@ -1,5 +1,6 @@
 package com.smartcampus.ticket.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -153,6 +154,10 @@ public class TicketService {
 			ticket.setResolvedAt(Instant.now());
 		}
 
+		if (ticket.getFirstResponseAt() == null && ticket.getStatus() == TicketStatus.OPEN) {
+			ticket.setFirstResponseAt(Instant.now());
+		}
+
 		ticket.setStatus(newStatus);
 		ticket.setUpdatedAt(Instant.now());
 		return toResponse(ticketRepository.save(ticket));
@@ -168,6 +173,9 @@ public class TicketService {
 
 		ticket.setAssignedTo(request.assignedTo());
 		if (ticket.getStatus() == TicketStatus.OPEN) {
+			if (ticket.getFirstResponseAt() == null) {
+				ticket.setFirstResponseAt(Instant.now());
+			}
 			ticket.setStatus(TicketStatus.IN_PROGRESS);
 		}
 		ticket.setUpdatedAt(Instant.now());
@@ -188,6 +196,15 @@ public class TicketService {
 	}
 
 	private static TicketResponse toResponse(Ticket t) {
+		Long ttfrMs = null;
+		if (t.getFirstResponseAt() != null && t.getCreatedAt() != null) {
+			ttfrMs = Duration.between(t.getCreatedAt(), t.getFirstResponseAt()).toMillis();
+		}
+		Long ttrMs = null;
+		if (t.getResolvedAt() != null && t.getCreatedAt() != null) {
+			ttrMs = Duration.between(t.getCreatedAt(), t.getResolvedAt()).toMillis();
+		}
+
 		return new TicketResponse(
 				t.getId(),
 				t.getTitle(),
@@ -206,7 +223,10 @@ public class TicketService {
 				t.getAttachments(),
 				t.getCreatedAt(),
 				t.getUpdatedAt(),
-				t.getResolvedAt()
+				t.getResolvedAt(),
+				t.getFirstResponseAt(),
+				ttfrMs,
+				ttrMs
 		);
 	}
 }
