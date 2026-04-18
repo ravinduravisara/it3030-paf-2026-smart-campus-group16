@@ -40,6 +40,8 @@ export default function TicketsOverviewPage() {
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [editingComment, setEditingComment] = useState(null)
   const [editText, setEditText] = useState('')
+  const [editError, setEditError] = useState('')
+  const [assignError, setAssignError] = useState('')
 
   const filters = tab === 'manage' && statusFilter ? { status: statusFilter } : undefined
   const { tickets, loading, error, reload, create, statusUpdate, assign } = useTickets(filters)
@@ -67,12 +69,17 @@ export default function TicketsOverviewPage() {
   }
 
   async function handleAssignSubmit() {
-    if (!assignTicketObj || !assignTo.trim()) return
+    if (!assignTicketObj) return
+    if (!assignTo.trim()) { setAssignError('Assignee username is required.'); return }
+    if (assignTo.trim().length < 2) { setAssignError('Username must be at least 2 characters.'); return }
+    if (assignTo.trim().length > 100) { setAssignError('Username must not exceed 100 characters.'); return }
     setActionError('')
+    setAssignError('')
     try {
       await assign(assignTicketObj.id, assignTo.trim())
       setAssignTicketObj(null)
       setAssignTo('')
+      await refreshDetail()
     } catch (err) {
       setActionError(extractError(err))
     }
@@ -111,8 +118,12 @@ export default function TicketsOverviewPage() {
   }
 
   async function handleUpdateComment(commentId, text) {
+    const trimmed = text.trim()
+    if (!trimmed) { setEditError('Comment cannot be empty.'); return }
+    if (trimmed.length > 1000) { setEditError('Comment must not exceed 1000 characters.'); return }
     if (!detailTicket) return
-    await updateComment(detailTicket.id, commentId, text)
+    setEditError('')
+    await updateComment(detailTicket.id, commentId, trimmed)
     setEditingComment(null)
     setEditText('')
     const data = await fetchComments(detailTicket.id)
@@ -303,14 +314,21 @@ export default function TicketsOverviewPage() {
                       <span className="text-xs text-gray-400">{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
                     </div>
                     {editingComment === c.id ? (
-                      <div className="mt-2 flex gap-2">
-                        <input
-                          value={editText}
-                          onChange={e => setEditText(e.target.value)}
-                          className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm"
-                        />
-                        <button onClick={() => handleUpdateComment(c.id, editText)} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs text-white">Save</button>
-                        <button onClick={() => { setEditingComment(null); setEditText('') }} className="text-xs text-gray-500">Cancel</button>
+                      <div className="mt-2 space-y-1">
+                        <div className="flex gap-2">
+                          <input
+                            value={editText}
+                            onChange={e => { setEditText(e.target.value); setEditError('') }}
+                            maxLength={1000}
+                            className={`flex-1 rounded-lg border px-3 py-1.5 text-sm ${editError ? 'border-rose-300' : 'border-gray-200'}`}
+                          />
+                          <button onClick={() => handleUpdateComment(c.id, editText)} disabled={!editText.trim()} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs text-white disabled:opacity-50">Save</button>
+                          <button onClick={() => { setEditingComment(null); setEditText(''); setEditError('') }} className="text-xs text-gray-500">Cancel</button>
+                        </div>
+                        <div className="flex justify-between">
+                          {editError ? <p className="text-xs text-rose-600">{editError}</p> : <span />}
+                          <span className="text-xs text-gray-400">{editText.length}/1000</span>
+                        </div>
                       </div>
                     ) : (
                       <>
@@ -348,15 +366,19 @@ export default function TicketsOverviewPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-3xl bg-white p-8 shadow-xl">
             <h3 className="text-lg font-bold text-gray-900">Assign Ticket</h3>
-            <p className="mt-1 text-sm text-gray-500">Assign to a technician or user.</p>
+            <p className="mt-1 text-sm text-gray-500">Assign "{assignTicketObj.title}" to a technician or user.</p>
             <input
               value={assignTo}
-              onChange={e => setAssignTo(e.target.value)}
+              onChange={e => { setAssignTo(e.target.value); setAssignError('') }}
               placeholder="Username of assignee"
-              className="mt-4 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              maxLength={100}
+              className={`mt-4 w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 ${
+                assignError ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-gray-200 focus:border-indigo-400 focus:ring-indigo-100'
+              }`}
             />
+            {assignError && <p className="mt-1 text-xs text-rose-600">{assignError}</p>}
             <div className="mt-5 flex justify-end gap-3">
-              <button onClick={() => setAssignTicketObj(null)} className="rounded-xl border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={() => { setAssignTicketObj(null); setAssignError('') }} className="rounded-xl border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
               <button onClick={handleAssignSubmit} disabled={!assignTo.trim()} className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">Assign</button>
             </div>
           </div>

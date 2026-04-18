@@ -56,16 +56,28 @@ public class TicketService {
 		return ticketRepository.findById(id).map(TicketService::toResponse).orElse(null);
 	}
 
+	private static final java.util.Set<String> VALID_CATEGORIES = java.util.Set.of(
+			"IT_EQUIPMENT", "ELECTRICAL", "PLUMBING", "HVAC", "FURNITURE", "CLEANING", "SECURITY", "OTHER");
+	private static final long MAX_ATTACHMENT_SIZE = 5_242_880L; // 5 MB
+	private static final java.util.Set<String> ALLOWED_CONTENT_TYPES = java.util.Set.of(
+			"image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp", "image/svg+xml");
+
 	public TicketResponse createTicket(TicketCreateRequest request, String username) {
+		// Validate category against allowed values
+		if (!VALID_CATEGORIES.contains(request.category())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"Invalid category. Must be one of: " + String.join(", ", VALID_CATEGORIES));
+		}
+
 		Ticket ticket = new Ticket();
-		ticket.setTitle(request.title());
-		ticket.setDescription(request.description());
+		ticket.setTitle(request.title().trim());
+		ticket.setDescription(request.description().trim());
 		ticket.setCategory(request.category());
 		ticket.setCreatedBy(username);
-		ticket.setContactInfo(request.contactInfo());
+		ticket.setContactInfo(request.contactInfo() != null ? request.contactInfo().trim() : null);
 		ticket.setPriority(request.priority() == null ? TicketPriority.MEDIUM : request.priority());
 		ticket.setStatus(TicketStatus.OPEN);
-		ticket.setLocation(request.location());
+		ticket.setLocation(request.location() != null ? request.location().trim() : null);
 
 		if (request.resourceId() != null && !request.resourceId().isBlank()) {
 			Resource resource = resourceRepository.findById(request.resourceId())
@@ -77,9 +89,32 @@ public class TicketService {
 			}
 		}
 
-		if (request.attachments() != null) {
+		if (request.attachments() != null && !request.attachments().isEmpty()) {
 			if (request.attachments().size() > 3) {
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maximum 3 attachments allowed");
+			}
+			for (int i = 0; i < request.attachments().size(); i++) {
+				var att = request.attachments().get(i);
+				if (att.getFileName() == null || att.getFileName().isBlank()) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+							"Attachment " + (i + 1) + ": file name is required");
+				}
+				if (att.getContentType() == null || !ALLOWED_CONTENT_TYPES.contains(att.getContentType())) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+							"Attachment " + (i + 1) + ": only image files are allowed (JPEG, PNG, GIF, WebP, BMP, SVG)");
+				}
+				if (att.getSize() <= 0) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+							"Attachment " + (i + 1) + ": file size must be positive");
+				}
+				if (att.getSize() > MAX_ATTACHMENT_SIZE) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+							"Attachment " + (i + 1) + ": file must not exceed 5 MB");
+				}
+				if (att.getBase64Data() == null || att.getBase64Data().isBlank()) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+							"Attachment " + (i + 1) + ": file data is required");
+				}
 			}
 			ticket.setAttachments(request.attachments());
 		}
@@ -91,18 +126,30 @@ public class TicketService {
 		Ticket ticket = ticketRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
-		TicketStatus newStatus = TicketStatus.valueOf(request.status().toUpperCase());
+		TicketStatus newStatus;
+		try {
+			newStatus = TicketStatus.valueOf(request.status().toUpperCase());
+		} catch (IllegalArgumentException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"Invalid status value: " + request.status());
+		}
 		validateStatusTransition(ticket.getStatus(), newStatus);
 
 		if (newStatus == TicketStatus.REJECTED) {
 			if (request.rejectionReason() == null || request.rejectionReason().isBlank()) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejection reason is required");
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejection reason is required when rejecting a ticket");
 			}
-			ticket.setRejectionReason(request.rejectionReason());
+			if (request.rejectionReason().trim().length() > 500) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejection reason must not exceed 500 characters");
+			}
+			ticket.setRejectionReason(request.rejectionReason().trim());
 		}
 
 		if (newStatus == TicketStatus.RESOLVED) {
-			ticket.setResolutionNotes(request.resolutionNotes());
+			if (request.resolutionNotes() != null && request.resolutionNotes().trim().length() > 2000) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resolution notes must not exceed 2000 characters");
+			}
+			ticket.setResolutionNotes(request.resolutionNotes() != null ? request.resolutionNotes().trim() : null);
 			ticket.setResolvedAt(Instant.now());
 		}
 

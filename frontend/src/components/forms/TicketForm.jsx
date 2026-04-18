@@ -34,11 +34,32 @@ export default function TicketForm({ onSubmit, loading }) {
   function validate() {
     const errs = {}
     if (!form.title.trim()) errs.title = 'Title is required.'
+    else if (form.title.trim().length < 3) errs.title = 'Title must be at least 3 characters.'
     else if (form.title.length > 200) errs.title = 'Title must not exceed 200 characters.'
+
     if (!form.description.trim()) errs.description = 'Description is required.'
     else if (form.description.trim().length < 10) errs.description = 'Description must be at least 10 characters.'
     else if (form.description.length > 2000) errs.description = 'Description must not exceed 2000 characters.'
+
     if (!form.category) errs.category = 'Category is required.'
+    else if (!CATEGORIES.includes(form.category)) errs.category = 'Please select a valid category.'
+
+    if (form.contactInfo && form.contactInfo.length > 200) errs.contactInfo = 'Contact info must not exceed 200 characters.'
+
+    if (form.location && form.location.length > 300) errs.location = 'Location must not exceed 300 characters.'
+
+    if (attachments.length > 3) errs.attachments = 'Maximum 3 attachments allowed.'
+    for (let i = 0; i < attachments.length; i++) {
+      const a = attachments[i]
+      if (a.size > 5 * 1024 * 1024) {
+        errs.attachments = `Attachment "${a.fileName}" exceeds 5 MB limit.`
+        break
+      }
+      if (!a.contentType || !a.contentType.startsWith('image/')) {
+        errs.attachments = `Attachment "${a.fileName}" is not an image file.`
+        break
+      }
+    }
     return errs
   }
 
@@ -79,8 +100,11 @@ export default function TicketForm({ onSubmit, loading }) {
 
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Title *</label>
-        <input name="title" value={form.title} onChange={handleChange} maxLength={200} className={inputClass('title')} placeholder="Brief summary of the issue" />
-        {errors.title && <p className="mt-1 text-xs text-rose-600">{errors.title}</p>}
+        <input name="title" value={form.title} onChange={handleChange} maxLength={200} className={inputClass('title')} placeholder="Brief summary of the issue (3–200 characters)" />
+        <div className="mt-1 flex justify-between">
+          {errors.title ? <p className="text-xs text-rose-600">{errors.title}</p> : <span />}
+          <span className="text-xs text-gray-400">{form.title.length}/200</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -121,18 +145,24 @@ export default function TicketForm({ onSubmit, loading }) {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Location</label>
-          <input name="location" value={form.location} onChange={handleChange} className={inputClass('location')} placeholder="e.g., Building A, Room 201" />
+          <input name="location" value={form.location} onChange={handleChange} maxLength={300} className={inputClass('location')} placeholder="e.g., Building A, Room 201" />
+          {errors.location && <p className="mt-1 text-xs text-rose-600">{errors.location}</p>}
         </div>
       </div>
 
       <div>
         <label className="mb-1 block text-sm font-medium text-gray-700">Contact Info</label>
         <input name="contactInfo" value={form.contactInfo} onChange={handleChange} maxLength={200} className={inputClass('contactInfo')} placeholder="Phone or email for follow-up" />
+        <div className="mt-1 flex justify-between">
+          {errors.contactInfo ? <p className="text-xs text-rose-600">{errors.contactInfo}</p> : <span />}
+          <span className="text-xs text-gray-400">{form.contactInfo.length}/200</span>
+        </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Attachments (max 3 images)</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">Attachments (max 3 images, 5 MB each)</label>
         <AttachmentUploader attachments={attachments} onChange={setAttachments} />
+        {errors.attachments && <p className="mt-1 text-xs text-rose-600">{errors.attachments}</p>}
       </div>
 
       <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50">

@@ -33,10 +33,18 @@ public class CommentService {
 		ticketRepository.findById(ticketId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
+		String text = request.text().trim();
+		if (text.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment text cannot be blank");
+		}
+		if (text.length() > 1000) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment must not exceed 1000 characters");
+		}
+
 		Comment comment = new Comment();
 		comment.setTicketId(ticketId);
 		comment.setAuthorUsername(username);
-		comment.setText(request.text());
+		comment.setText(text);
 		return toResponse(commentRepository.save(comment));
 	}
 
@@ -48,7 +56,15 @@ public class CommentService {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only edit your own comments");
 		}
 
-		comment.setText(request.text());
+		String text = request.text().trim();
+		if (text.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment text cannot be blank");
+		}
+		if (text.length() > 1000) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment must not exceed 1000 characters");
+		}
+
+		comment.setText(text);
 		comment.setUpdatedAt(Instant.now());
 		return toResponse(commentRepository.save(comment));
 	}
