@@ -17,9 +17,26 @@ export default function ResolutionPanel({ ticket, onSubmit, onClose }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!status) return
-    if (status === 'REJECTED' && !rejectionReason.trim()) {
-      setError('Rejection reason is required')
+    if (!status) {
+      setError('Please select a new status')
+      return
+    }
+    if (status === 'REJECTED') {
+      if (!rejectionReason.trim()) {
+        setError('Rejection reason is required')
+        return
+      }
+      if (rejectionReason.trim().length < 5) {
+        setError('Rejection reason must be at least 5 characters')
+        return
+      }
+      if (rejectionReason.trim().length > 500) {
+        setError('Rejection reason must not exceed 500 characters')
+        return
+      }
+    }
+    if (status === 'RESOLVED' && resolutionNotes.trim().length > 2000) {
+      setError('Resolution notes must not exceed 2000 characters')
       return
     }
     setBusy(true)
@@ -70,6 +87,7 @@ export default function ResolutionPanel({ ticket, onSubmit, onClose }) {
                 className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                 placeholder="Describe how the issue was resolved"
               />
+              <p className="mt-1 text-right text-xs text-gray-400">{resolutionNotes.length}/2000</p>
             </div>
           )}
 
@@ -81,9 +99,12 @@ export default function ResolutionPanel({ ticket, onSubmit, onClose }) {
                 onChange={e => setRejectionReason(e.target.value)}
                 rows={3}
                 maxLength={500}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                placeholder="Reason for rejecting this ticket"
+                className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 ${
+                  error && !rejectionReason.trim() ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-gray-200 focus:border-indigo-400 focus:ring-indigo-100'
+                }`}
+                placeholder="Reason for rejecting this ticket (min 5 characters)"
               />
+              <p className="mt-1 text-right text-xs text-gray-400">{rejectionReason.length}/500</p>
             </div>
           )}
 
