@@ -1,6 +1,7 @@
 package com.smartcampus.booking.service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import com.smartcampus.booking.dto.BookingCancelRequest;
@@ -48,6 +49,10 @@ public class BookingService {
 	}
 
 	public BookingResponse createBooking(BookingCreateRequest request, String username) {
+		if (request.date().isBefore(LocalDate.now())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking date cannot be in the past");
+		}
+
 		if (!request.endTime().isAfter(request.startTime())) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "End time must be after start time");
 		}

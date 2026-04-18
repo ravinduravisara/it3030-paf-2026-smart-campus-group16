@@ -11,10 +11,12 @@ import com.smartcampus.booking.service.BookingService;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -32,7 +34,11 @@ public class BookingController {
 
 		if (isAdmin) {
 			if (status != null && !status.isBlank()) {
-				return bookingService.listByStatus(BookingStatus.valueOf(status.toUpperCase()));
+				try {
+					return bookingService.listByStatus(BookingStatus.valueOf(status.toUpperCase()));
+				} catch (IllegalArgumentException e) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status filter: " + status);
+				}
 			}
 			return bookingService.listAllBookings();
 		}
@@ -64,7 +70,7 @@ public class BookingController {
 
 	@PatchMapping("/{id}/cancel")
 	public ResponseEntity<BookingResponse> cancel(@PathVariable String id,
-												  @RequestBody(required = false) BookingCancelRequest request,
+												  @Valid @RequestBody(required = false) BookingCancelRequest request,
 												  Authentication auth) {
 		boolean isAdmin = auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
 		return ResponseEntity.ok(bookingService.cancel(id, request, auth.getName(), isAdmin));
