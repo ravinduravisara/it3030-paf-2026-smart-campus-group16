@@ -2,20 +2,21 @@ package com.smartcampus.booking.controller;
 
 import java.util.List;
 
+import com.smartcampus.booking.dto.BookingCancelRequest;
 import com.smartcampus.booking.dto.BookingCreateRequest;
+import com.smartcampus.booking.dto.BookingDecisionRequest;
 import com.smartcampus.booking.dto.BookingResponse;
+import com.smartcampus.booking.model.BookingStatus;
 import com.smartcampus.booking.service.BookingService;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -27,8 +28,22 @@ public class BookingController {
 	}
 
 	@GetMapping
-	public List<BookingResponse> list() {
-		return bookingService.listBookings();
+	public List<BookingResponse> list(Authentication auth,
+									  @RequestParam(required = false) String status) {
+		boolean isAdmin = auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+
+		if (isAdmin) {
+			if (status != null && !status.isBlank()) {
+				try {
+					return bookingService.listByStatus(BookingStatus.valueOf(status.toUpperCase()));
+				} catch (IllegalArgumentException e) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status filter: " + status);
+				}
+			}
+			return bookingService.listAllBookings();
+		}
+
+		return bookingService.listMyBookings(auth.getName());
 	}
 
 	@GetMapping("/{id}")
@@ -41,8 +56,24 @@ public class BookingController {
 	}
 
 	@PostMapping
-	public ResponseEntity<BookingResponse> create(@Valid @RequestBody BookingCreateRequest request) {
-		return ResponseEntity.ok(bookingService.createBooking(request));
+	public ResponseEntity<BookingResponse> create(@Valid @RequestBody BookingCreateRequest request,
+												  Authentication auth) {
+		return ResponseEntity.ok(bookingService.createBooking(request, auth.getName()));
+	}
+
+	@PatchMapping("/{id}/decide")
+	public ResponseEntity<BookingResponse> decide(@PathVariable String id,
+												  @Valid @RequestBody BookingDecisionRequest request,
+												  Authentication auth) {
+		return ResponseEntity.ok(bookingService.decide(id, request, auth.getName()));
+	}
+
+	@PatchMapping("/{id}/cancel")
+	public ResponseEntity<BookingResponse> cancel(@PathVariable String id,
+												  @Valid @RequestBody(required = false) BookingCancelRequest request,
+												  Authentication auth) {
+		boolean isAdmin = auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+		return ResponseEntity.ok(bookingService.cancel(id, request, auth.getName(), isAdmin));
 	}
 
 	@PutMapping("/{id}/approve")

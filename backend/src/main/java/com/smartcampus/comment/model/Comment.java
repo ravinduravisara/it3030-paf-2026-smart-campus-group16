@@ -11,49 +11,28 @@ public class Comment {
 	@Id
 	private String id;
 	private String ticketId;
-	private String createdBy;
+	private String authorUsername;
 	private String text;
 
 	@CreatedDate
 	private Instant createdAt;
+	private Instant updatedAt;
 
-	public String getId() {
-		return id;
-	}
+	public String getId() { return id; }
+	public void setId(String id) { this.id = id; }
 
-	public void setId(String id) {
-		this.id = id;
-	}
+	public String getTicketId() { return ticketId; }
+	public void setTicketId(String ticketId) { this.ticketId = ticketId; }
 
-	public String getTicketId() {
-		return ticketId;
-	}
+	public String getAuthorUsername() { return authorUsername; }
+	public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
 
-	public void setTicketId(String ticketId) {
-		this.ticketId = ticketId;
-	}
+	public String getText() { return text; }
+	public void setText(String text) { this.text = text; }
 
-	public String getCreatedBy() {
-		return createdBy;
-	}
+	public Instant getCreatedAt() { return createdAt; }
+	public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
-	public void setCreatedBy(String createdBy) {
-		this.createdBy = createdBy;
-	}
-
-	public String getText() {
-		return text;
-	}
-
-	public void setText(String text) {
-		this.text = text;
-	}
-
-	public Instant getCreatedAt() {
-		return createdAt;
-	}
-
-	public void setCreatedAt(Instant createdAt) {
-		this.createdAt = createdAt;
-	}
+	public Instant getUpdatedAt() { return updatedAt; }
+	public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }
