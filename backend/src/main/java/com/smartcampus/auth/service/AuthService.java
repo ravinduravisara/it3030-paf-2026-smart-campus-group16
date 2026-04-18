@@ -52,7 +52,7 @@ public class AuthService {
 
 		if (normalizedIdentifier.equals(adminUsername.toLowerCase()) && Objects.equals(adminPassword, password)) {
 			String token = jwtUtil.generateToken(adminUsername, "ADMIN");
-			return new AuthResponse(token, "admin", adminUsername, "ADMIN", adminUsername, adminUsername, "Admin login successful.");
+			return new AuthResponse(token, adminUsername, "ADMIN", adminUsername, adminUsername, "Admin login successful.");
 		}
 
 		User user = findUserByIdentifier(identifier);
@@ -99,7 +99,7 @@ public class AuthService {
 		user.setVerified(false);
 
 		String otpMessage = issueOtpFor(user);
-		return new AuthResponse(null, null, name, "USER", email, name, otpMessage);
+		return new AuthResponse(null, name, "USER", email, name, otpMessage);
 	}
 
 	public AuthResponse verifyOtp(AuthVerifyOtpRequest request) {
@@ -148,11 +148,11 @@ public class AuthService {
 		}
 
 		if (isVerified(user)) {
-			return new AuthResponse(null, user.getId(), displayNameFor(user), normalizedRole(user), email, displayNameFor(user), "This account is already verified.");
+			return new AuthResponse(null, displayNameFor(user), normalizedRole(user), email, displayNameFor(user), "This account is already verified.");
 		}
 
 		String otpMessage = issueOtpFor(user);
-		return new AuthResponse(null, user.getId(), displayNameFor(user), normalizedRole(user), email, displayNameFor(user), otpMessage);
+		return new AuthResponse(null, displayNameFor(user), normalizedRole(user), email, displayNameFor(user), otpMessage);
 	}
 
 	public AuthResponse oauth2Login(String email, String name, String picture) {
@@ -206,7 +206,7 @@ public class AuthService {
 		String subject = user.getEmail() != null && !user.getEmail().isBlank() ? user.getEmail() : user.getUsername();
 		String displayName = displayNameFor(user);
 		String token = jwtUtil.generateToken(subject, role);
-		return new AuthResponse(token, user.getId(), displayName, role, subject, displayName, message);
+		return new AuthResponse(token, displayName, role, subject, displayName, message);
 	}
 
 	private String issueOtpFor(User user) {

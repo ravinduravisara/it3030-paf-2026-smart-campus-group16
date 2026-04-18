@@ -36,7 +36,6 @@ export default function App() {
     const [, query = ''] = raw.split('?')
     const params = new URLSearchParams(query)
     const token = params.get('token')
-    const id = params.get('id')
     const email = params.get('email')
     const name = params.get('name')
     const role = params.get('role')
@@ -46,16 +45,14 @@ export default function App() {
       establishSession({
         token,
         user: {
-          id: id || null,
           name: name || email || 'SmartCampus User',
           email: email || 'user@campus.edu',
           username: name || email || 'user@campus.edu',
           role: role || 'USER',
         },
       })
-      // Clean the hash to remove token params
-      window.location.hash = `#${nextRoute}`
       setRoute(nextRoute)
+      window.location.hash = `#${nextRoute}`
       return () => window.removeEventListener('hashchange', onHashChange)
     }
 

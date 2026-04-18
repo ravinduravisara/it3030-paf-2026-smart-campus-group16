@@ -33,13 +33,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        // Skip JWT processing for OAuth2 callback paths
-        String path = request.getRequestURI();
-        if (path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String token = resolveToken(request);
 
         if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {

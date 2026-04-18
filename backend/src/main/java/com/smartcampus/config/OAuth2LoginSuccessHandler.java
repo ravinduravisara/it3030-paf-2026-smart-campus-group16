@@ -42,29 +42,36 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		// Get JWT token from auth service
 		AuthResponse authResponse = authService.oauth2Login(email, name, picture);
 
-		// Set token cookie
+		// Set cookies instead of URL parameters
 		Cookie tokenCookie = new Cookie("sc.accessToken", authResponse.token());
 		tokenCookie.setPath("/");
 		tokenCookie.setHttpOnly(false);
 		tokenCookie.setMaxAge(86400); // 24 hours
 		response.addCookie(tokenCookie);
 
-		// Build redirect URL with all user info as query params
-		// Use URI-safe encoding (replace + with %20 for proper decoding in JS)
+		// Store user info in a separate cookie (not httpOnly so JS can read it)
+		String userJson = String.format(
+				"{\"name\":\"%s\",\"username\":\"%s\",\"email\":\"%s\",\"role\":\"%s\"}",
+				java.net.URLEncoder.encode(authResponse.name(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.username(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.email(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.role(), StandardCharsets.UTF_8)
+		);
+		Cookie userCookie = new Cookie("sc.user", userJson);
+		userCookie.setPath("/");
+		userCookie.setMaxAge(86400); // 24 hours
+		response.addCookie(userCookie);
+
 		String redirectUrl = String.format(
-				"%s/#login?oauth=success&token=%s&id=%s&email=%s&name=%s&role=%s",
+				"%s/#login?oauth=success&token=%s&email=%s&name=%s&role=%s",
 				frontendUrl,
-				encode(authResponse.token()),
-				encode(authResponse.id() != null ? authResponse.id() : ""),
-				encode(authResponse.email()),
-				encode(authResponse.name()),
-				encode(authResponse.role())
+				java.net.URLEncoder.encode(authResponse.token(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.email(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.name(), StandardCharsets.UTF_8),
+				java.net.URLEncoder.encode(authResponse.role(), StandardCharsets.UTF_8)
 		);
 
-		getRedirectStrategy().sendRedirect(request, response, redirectUrl);
-	}
-
-	private static String encode(String value) {
-		return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+		setDefaultTargetUrl(redirectUrl);
+		super.onAuthenticationSuccess(request, response, authentication);
 	}
 }
