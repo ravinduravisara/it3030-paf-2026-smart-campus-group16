@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, ClipboardList, ListChecks, Plus } from 'lucide-react'
+import { AlertTriangle, ClipboardList, ListChecks, Plus, Timer } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth.js'
 import { useTickets } from '../../hooks/useTickets.js'
 import { fetchComments, addComment, updateComment, deleteComment } from '../../api/commentApi.js'
@@ -10,6 +10,7 @@ import TicketForm from '../../components/forms/TicketForm.jsx'
 import ResolutionPanel from '../../components/ticket/ResolutionPanel.jsx'
 import TicketStatusBadge from '../../components/ticket/TicketStatusBadge.jsx'
 import CommentForm from '../../components/forms/CommentForm.jsx'
+import formatDuration from '../../utils/formatDuration.js'
 
 const TABS = [
   { key: 'my', label: 'My Tickets', icon: ClipboardList },
@@ -251,6 +252,30 @@ export default function TicketsOverviewPage() {
             {detailTicket.contactInfo && <div><span className="font-semibold text-gray-700">Contact:</span> {detailTicket.contactInfo}</div>}
             {detailTicket.createdAt && <div><span className="font-semibold text-gray-700">Created:</span> {new Date(detailTicket.createdAt).toLocaleString()}</div>}
           </div>
+
+          {/* SLA Timers */}
+          {(detailTicket.timeToFirstResponseMs != null || detailTicket.timeToResolutionMs != null) && (
+            <div className="mt-4 flex flex-wrap gap-3">
+              {detailTicket.timeToFirstResponseMs != null && (
+                <div className="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-2.5">
+                  <Timer className="h-4 w-4 text-blue-600" />
+                  <div>
+                    <p className="text-xs font-semibold text-blue-700">First Response</p>
+                    <p className="text-sm font-bold text-blue-900">{formatDuration(detailTicket.timeToFirstResponseMs)}</p>
+                  </div>
+                </div>
+              )}
+              {detailTicket.timeToResolutionMs != null && (
+                <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2.5">
+                  <Timer className="h-4 w-4 text-emerald-600" />
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-700">Resolution Time</p>
+                    <p className="text-sm font-bold text-emerald-900">{formatDuration(detailTicket.timeToResolutionMs)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {detailTicket.resolutionNotes && (
             <div className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">

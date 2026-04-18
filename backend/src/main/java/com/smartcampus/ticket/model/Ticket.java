@@ -32,6 +32,7 @@ public class Ticket {
 	private Instant createdAt;
 	private Instant updatedAt;
 	private Instant resolvedAt;
+	private Instant firstResponseAt;
 
 	public String getId() { return id; }
 	public void setId(String id) { this.id = id; }
@@ -86,4 +87,7 @@ public class Ticket {
 
 	public Instant getResolvedAt() { return resolvedAt; }
 	public void setResolvedAt(Instant resolvedAt) { this.resolvedAt = resolvedAt; }
+
+	public Instant getFirstResponseAt() { return firstResponseAt; }
+	public void setFirstResponseAt(Instant firstResponseAt) { this.firstResponseAt = firstResponseAt; }
 }

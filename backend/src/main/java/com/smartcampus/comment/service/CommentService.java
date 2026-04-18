@@ -8,6 +8,7 @@ import com.smartcampus.comment.dto.CommentResponse;
 import com.smartcampus.comment.dto.CommentUpdateRequest;
 import com.smartcampus.comment.model.Comment;
 import com.smartcampus.comment.repository.CommentRepository;
+import com.smartcampus.ticket.model.Ticket;
 import com.smartcampus.ticket.repository.TicketRepository;
 
 import org.springframework.http.HttpStatus;
@@ -30,7 +31,7 @@ public class CommentService {
 	}
 
 	public CommentResponse addComment(String ticketId, CommentCreateRequest request, String username) {
-		ticketRepository.findById(ticketId)
+		Ticket ticket = ticketRepository.findById(ticketId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
 		String text = request.text().trim();
@@ -39,6 +40,13 @@ public class CommentService {
 		}
 		if (text.length() > 1000) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Comment must not exceed 1000 characters");
+		}
+
+		// Record first response time if commenter is not the ticket creator
+		if (ticket.getFirstResponseAt() == null && !username.equals(ticket.getCreatedBy())) {
+			ticket.setFirstResponseAt(Instant.now());
+			ticket.setUpdatedAt(Instant.now());
+			ticketRepository.save(ticket);
 		}
 
 		Comment comment = new Comment();

@@ -25,6 +25,9 @@ public record TicketResponse(
 		List<AttachmentMetadata> attachments,
 		Instant createdAt,
 		Instant updatedAt,
-		Instant resolvedAt
+		Instant resolvedAt,
+		Instant firstResponseAt,
+		Long timeToFirstResponseMs,
+		Long timeToResolutionMs
 ) {
 }

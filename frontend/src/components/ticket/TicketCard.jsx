@@ -1,5 +1,6 @@
-import { AlertTriangle, Clock, MapPin, User } from 'lucide-react'
+import { AlertTriangle, Clock, MapPin, Timer, User } from 'lucide-react'
 import TicketStatusBadge from './TicketStatusBadge.jsx'
+import formatDuration from '../../utils/formatDuration.js'
 
 const PRIORITY_COLORS = {
   HIGH: 'text-rose-600',
@@ -51,6 +52,21 @@ export default function TicketCard({ ticket, onSelect }) {
 
       {ticket.assignedTo && (
         <p className="mt-2 text-xs text-indigo-600">Assigned to: {ticket.assignedTo}</p>
+      )}
+
+      {(ticket.timeToFirstResponseMs != null || ticket.timeToResolutionMs != null) && (
+        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+          {ticket.timeToFirstResponseMs != null && (
+            <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-blue-600">
+              <Timer className="h-3 w-3" /> Response: {formatDuration(ticket.timeToFirstResponseMs)}
+            </span>
+          )}
+          {ticket.timeToResolutionMs != null && (
+            <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-600">
+              <Timer className="h-3 w-3" /> Resolved: {formatDuration(ticket.timeToResolutionMs)}
+            </span>
+          )}
+        </div>
       )}
     </div>
   )
