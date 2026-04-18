@@ -1,5 +1,6 @@
 package com.smartcampus.booking.dto;
 
-public class BookingCancelRequest {
-  
+public record BookingCancelRequest(
+		String reason
+) {
 }
