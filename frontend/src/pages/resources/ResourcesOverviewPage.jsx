@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { CalendarCheck, Laptop, MapPin } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { CalendarCheck, Laptop, MapPin, Search } from 'lucide-react'
 import QuickCard from '../../components/common/QuickCard.jsx'
 import { useAuth } from '../../hooks/useAuth.js'
 import { deleteJson, getJson, postJson, putJson } from '../../services/api.js'
@@ -50,6 +50,55 @@ export default function ResourcesOverviewPage() {
   const [editWindows, setEditWindows] = useState([])
   const [editWindowStart, setEditWindowStart] = useState('')
   const [editWindowEnd, setEditWindowEnd] = useState('')
+
+  const [createErrors, setCreateErrors] = useState({})
+  const [editErrors, setEditErrors] = useState({})
+  const [windowError, setWindowError] = useState('')
+  const [editWindowError, setEditWindowError] = useState('')
+
+  const [allResources, setAllResources] = useState([])
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [activeSuggestion, setActiveSuggestion] = useState(-1)
+  const searchRef = useRef(null)
+  const suggestionsRef = useRef(null)
+
+  // Load all resources once for suggestions
+  useEffect(() => {
+    getJson('/api/resources').then(data => {
+      if (Array.isArray(data)) setAllResources(data)
+    }).catch(() => {})
+  }, [])
+
+  const computeSuggestions = useCallback((query) => {
+    const q = query.trim().toLowerCase()
+    if (!q) { setSuggestions([]); return }
+    const seen = new Set()
+    const results = []
+    for (const r of allResources) {
+      const fields = [r.name, r.location, r.description].filter(Boolean)
+      for (const f of fields) {
+        if (f.toLowerCase().includes(q) && !seen.has(f)) {
+          seen.add(f)
+          results.push(f)
+          if (results.length >= 8) break
+        }
+      }
+      if (results.length >= 8) break
+    }
+    setSuggestions(results)
+  }, [allResources])
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const iconByType = useMemo(
     () => ({
@@ -147,9 +196,17 @@ export default function ResourcesOverviewPage() {
   function addCreateWindow() {
     const start = toIsoFromLocalDateTime(createWindowStart)
     const end = toIsoFromLocalDateTime(createWindowEnd)
-    if (!start || !end) return
-    if (new Date(start) >= new Date(end)) return
-
+    if (!start || !end) { setWindowError('Both start and end are required.'); return }
+    if (new Date(start) >= new Date(end)) { setWindowError('Start must be before end.'); return }
+    if (createWindows.length >= 20) { setWindowError('Maximum 20 availability windows allowed.'); return }
+    // check overlap
+    for (let i = 0; i < createWindows.length; i++) {
+      const w = createWindows[i]
+      if (new Date(start) < new Date(w.end) && new Date(w.start) < new Date(end)) {
+        setWindowError(`Overlaps with window ${i + 1}.`); return
+      }
+    }
+    setWindowError('')
     setCreateWindows((prev) => [...prev, { start, end }])
     setCreateWindowStart('')
     setCreateWindowEnd('')
@@ -171,8 +228,21 @@ export default function ResourcesOverviewPage() {
     const description = String(formData.get('description') || '').trim()
     const location = String(formData.get('location') || '').trim()
 
+    const errs = {}
+    if (!name) errs.name = 'Name is required.'
+    else if (name.length < 2) errs.name = 'Name must be at least 2 characters.'
+    else if (name.length > 200) errs.name = 'Name must not exceed 200 characters.'
+    if (!type) errs.type = 'Type is required.'
     const capacity = Number(capacityRaw)
-    if (!name || !type || !Number.isFinite(capacity) || capacity <= 0) return
+    if (!capacityRaw) errs.capacity = 'Capacity is required.'
+    else if (!Number.isFinite(capacity) || capacity <= 0) errs.capacity = 'Capacity must be a positive number.'
+    else if (capacity > 100000) errs.capacity = 'Capacity must not exceed 100,000.'
+    else if (!Number.isInteger(capacity)) errs.capacity = 'Capacity must be a whole number.'
+    if (description.length > 1000) errs.description = 'Description must not exceed 1000 characters.'
+    if (location.length > 300) errs.location = 'Location must not exceed 300 characters.'
+
+    setCreateErrors(errs)
+    if (Object.keys(errs).length > 0) return
 
     setBusy(true)
     setError('')
@@ -190,9 +260,11 @@ export default function ResourcesOverviewPage() {
       setCreateWindows([])
       setCreateWindowStart('')
       setCreateWindowEnd('')
+      setCreateErrors({})
       await load(filters)
     } catch (e2) {
-      setError(e2?.message || 'Failed to create resource')
+      const msg = extractApiError(e2)
+      setError(msg)
     } finally {
       setBusy(false)
     }
@@ -222,9 +294,16 @@ export default function ResourcesOverviewPage() {
   function addEditWindow() {
     const start = toIsoFromLocalDateTime(editWindowStart)
     const end = toIsoFromLocalDateTime(editWindowEnd)
-    if (!start || !end) return
-    if (new Date(start) >= new Date(end)) return
-
+    if (!start || !end) { setEditWindowError('Both start and end are required.'); return }
+    if (new Date(start) >= new Date(end)) { setEditWindowError('Start must be before end.'); return }
+    if (editWindows.length >= 20) { setEditWindowError('Maximum 20 availability windows allowed.'); return }
+    for (let i = 0; i < editWindows.length; i++) {
+      const w = editWindows[i]
+      if (new Date(start) < new Date(w.end) && new Date(w.start) < new Date(end)) {
+        setEditWindowError(`Overlaps with window ${i + 1}.`); return
+      }
+    }
+    setEditWindowError('')
     setEditWindows((prev) => [...prev, { start, end }])
     setEditWindowStart('')
     setEditWindowEnd('')
@@ -238,26 +317,43 @@ export default function ResourcesOverviewPage() {
     e.preventDefault()
     if (!isAdmin || busy || !editing || !editDraft) return
 
+    const errs = {}
+    const name = editDraft.name.trim()
+    if (!name) errs.name = 'Name is required.'
+    else if (name.length < 2) errs.name = 'Name must be at least 2 characters.'
+    else if (name.length > 200) errs.name = 'Name must not exceed 200 characters.'
+    if (!editDraft.type) errs.type = 'Type is required.'
     const capacity = Number(editDraft.capacity)
-    if (!editDraft.name.trim() || !editDraft.type || !Number.isFinite(capacity) || capacity <= 0) return
+    if (editDraft.capacity === '' || editDraft.capacity == null) errs.capacity = 'Capacity is required.'
+    else if (!Number.isFinite(capacity) || capacity <= 0) errs.capacity = 'Capacity must be a positive number.'
+    else if (capacity > 100000) errs.capacity = 'Capacity must not exceed 100,000.'
+    else if (!Number.isInteger(capacity)) errs.capacity = 'Capacity must be a whole number.'
+    const desc = editDraft.description.trim()
+    if (desc.length > 1000) errs.description = 'Description must not exceed 1000 characters.'
+    const loc = editDraft.location.trim()
+    if (loc.length > 300) errs.location = 'Location must not exceed 300 characters.'
+
+    setEditErrors(errs)
+    if (Object.keys(errs).length > 0) return
 
     setBusy(true)
     setError('')
     try {
       await putJson(`/api/resources/${editing.id}`, {
-        name: editDraft.name.trim(),
+        name: name,
         type: editDraft.type,
         capacity,
         status: editDraft.status || undefined,
-        description: editDraft.description.trim() || undefined,
-        location: editDraft.location.trim() || undefined,
+        description: desc || undefined,
+        location: loc || undefined,
         availabilityWindows: editWindows,
       })
 
       cancelEdit()
+      setEditErrors({})
       await load(filters)
     } catch (e2) {
-      setError(e2?.message || 'Failed to update resource')
+      setError(extractApiError(e2))
     } finally {
       setBusy(false)
     }
@@ -277,7 +373,7 @@ export default function ResourcesOverviewPage() {
       }
       await load(filters)
     } catch (e) {
-      setError(e?.message || 'Failed to delete resource')
+      setError(extractApiError(e))
     } finally {
       setBusy(false)
     }
@@ -304,14 +400,74 @@ export default function ResourcesOverviewPage() {
 
       <form onSubmit={handleApplyFilters} className="mt-6 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-          <div className="md:col-span-2">
+          <div className="md:col-span-2" ref={searchRef}>
             <label className="text-sm font-medium text-gray-700">Search</label>
-            <input
-              value={filters.q}
-              onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
-              placeholder="Name, location, description"
-              className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
-            />
+            <div className="relative mt-2">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                value={filters.q}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setFilters((prev) => ({ ...prev, q: v }))
+                  computeSuggestions(v)
+                  setShowSuggestions(true)
+                  setActiveSuggestion(-1)
+                }}
+                onFocus={() => { if (filters.q.trim()) { computeSuggestions(filters.q); setShowSuggestions(true) } }}
+                onKeyDown={(e) => {
+                  if (!showSuggestions || suggestions.length === 0) return
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    setActiveSuggestion((prev) => (prev + 1) % suggestions.length)
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    setActiveSuggestion((prev) => (prev <= 0 ? suggestions.length - 1 : prev - 1))
+                  } else if (e.key === 'Enter' && activeSuggestion >= 0) {
+                    e.preventDefault()
+                    const picked = suggestions[activeSuggestion]
+                    setFilters((prev) => ({ ...prev, q: picked }))
+                    setShowSuggestions(false)
+                    setActiveSuggestion(-1)
+                  } else if (e.key === 'Escape') {
+                    setShowSuggestions(false)
+                  }
+                }}
+                placeholder="Name, location, description"
+                autoComplete="off"
+                className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <ul
+                  ref={suggestionsRef}
+                  className="absolute z-30 mt-1 max-h-52 w-full overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+                >
+                  {suggestions.map((s, i) => {
+                    const q = filters.q.trim().toLowerCase()
+                    const idx = s.toLowerCase().indexOf(q)
+                    return (
+                      <li
+                        key={s}
+                        onMouseDown={() => {
+                          setFilters((prev) => ({ ...prev, q: s }))
+                          setShowSuggestions(false)
+                          setActiveSuggestion(-1)
+                        }}
+                        onMouseEnter={() => setActiveSuggestion(i)}
+                        className={`cursor-pointer px-4 py-2 text-sm ${i === activeSuggestion ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        {idx >= 0 ? (
+                          <>
+                            {s.slice(0, idx)}
+                            <span className="font-semibold text-indigo-600">{s.slice(idx, idx + q.length)}</span>
+                            {s.slice(idx + q.length)}
+                          </>
+                        ) : s}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Type</label>
@@ -407,16 +563,18 @@ export default function ResourcesOverviewPage() {
               <input
                 name="name"
                 required
+                maxLength={200}
                 placeholder="e.g., Lecture Hall A"
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${createErrors.name ? 'border-rose-300' : 'border-gray-200'}`}
               />
+              {createErrors.name && <p className="mt-1 text-xs text-rose-600">{createErrors.name}</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Type</label>
               <select
                 name="type"
                 required
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${createErrors.type ? 'border-rose-300' : 'border-gray-200'}`}
                 defaultValue="LAB"
               >
                 <option value="ROOM">ROOM</option>
@@ -425,6 +583,7 @@ export default function ResourcesOverviewPage() {
                 <option value="VEHICLE">VEHICLE</option>
                 <option value="OTHER">OTHER</option>
               </select>
+              {createErrors.type && <p className="mt-1 text-xs text-rose-600">{createErrors.type}</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Capacity</label>
@@ -433,8 +592,9 @@ export default function ResourcesOverviewPage() {
                 required
                 inputMode="numeric"
                 placeholder="e.g., 40"
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${createErrors.capacity ? 'border-rose-300' : 'border-gray-200'}`}
               />
+              {createErrors.capacity && <p className="mt-1 text-xs text-rose-600">{createErrors.capacity}</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Status</label>
@@ -451,17 +611,21 @@ export default function ResourcesOverviewPage() {
               <label className="text-sm font-medium text-gray-700">Location</label>
               <input
                 name="location"
+                maxLength={300}
                 placeholder="e.g., Block B"
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${createErrors.location ? 'border-rose-300' : 'border-gray-200'}`}
               />
+              {createErrors.location && <p className="mt-1 text-xs text-rose-600">{createErrors.location}</p>}
             </div>
             <div className="md:col-span-4">
               <label className="text-sm font-medium text-gray-700">Description</label>
               <input
                 name="description"
+                maxLength={1000}
                 placeholder="Optional"
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${createErrors.description ? 'border-rose-300' : 'border-gray-200'}`}
               />
+              {createErrors.description && <p className="mt-1 text-xs text-rose-600">{createErrors.description}</p>}
             </div>
           </div>
 
@@ -497,6 +661,8 @@ export default function ResourcesOverviewPage() {
               </div>
             </div>
 
+            {windowError && <p className="mt-2 text-xs text-rose-600">{windowError}</p>}
+
             {createWindows.length ? (
               <ul className="mt-3 space-y-2 text-sm text-gray-700">
                 {createWindows.map((w, idx) => (
@@ -506,7 +672,7 @@ export default function ResourcesOverviewPage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => removeCreateWindow(idx)}
+                      onClick={() => { removeCreateWindow(idx); setWindowError('') }}
                       className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-800 hover:bg-gray-50"
                     >
                       Remove
@@ -550,17 +716,19 @@ export default function ResourcesOverviewPage() {
               <label className="text-sm font-medium text-gray-700">Name</label>
               <input
                 value={editDraft.name}
-                onChange={(e) => setEditDraft((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => { setEditDraft((prev) => ({ ...prev, name: e.target.value })); setEditErrors((p) => ({ ...p, name: undefined })) }}
                 required
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                maxLength={200}
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${editErrors.name ? 'border-rose-300' : 'border-gray-200'}`}
               />
+              {editErrors.name ? <p className="mt-1 text-xs text-rose-600">{editErrors.name}</p> : <p className="mt-1 text-xs text-gray-400">{editDraft.name.length}/200</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Type</label>
               <select
                 value={editDraft.type}
                 onChange={(e) => setEditDraft((prev) => ({ ...prev, type: e.target.value }))}
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${editErrors.type ? 'border-rose-300' : 'border-gray-200'}`}
               >
                 <option value="ROOM">ROOM</option>
                 <option value="LAB">LAB</option>
@@ -568,16 +736,18 @@ export default function ResourcesOverviewPage() {
                 <option value="VEHICLE">VEHICLE</option>
                 <option value="OTHER">OTHER</option>
               </select>
+              {editErrors.type && <p className="mt-1 text-xs text-rose-600">{editErrors.type}</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Capacity</label>
               <input
                 value={editDraft.capacity}
-                onChange={(e) => setEditDraft((prev) => ({ ...prev, capacity: e.target.value }))}
+                onChange={(e) => { setEditDraft((prev) => ({ ...prev, capacity: e.target.value })); setEditErrors((p) => ({ ...p, capacity: undefined })) }}
                 required
                 inputMode="numeric"
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${editErrors.capacity ? 'border-rose-300' : 'border-gray-200'}`}
               />
+              {editErrors.capacity && <p className="mt-1 text-xs text-rose-600">{editErrors.capacity}</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Status</label>
@@ -594,17 +764,21 @@ export default function ResourcesOverviewPage() {
               <label className="text-sm font-medium text-gray-700">Location</label>
               <input
                 value={editDraft.location}
-                onChange={(e) => setEditDraft((prev) => ({ ...prev, location: e.target.value }))}
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                onChange={(e) => { setEditDraft((prev) => ({ ...prev, location: e.target.value })); setEditErrors((p) => ({ ...p, location: undefined })) }}
+                maxLength={300}
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${editErrors.location ? 'border-rose-300' : 'border-gray-200'}`}
               />
+              {editErrors.location ? <p className="mt-1 text-xs text-rose-600">{editErrors.location}</p> : <p className="mt-1 text-xs text-gray-400">{editDraft.location.length}/300</p>}
             </div>
             <div className="md:col-span-4">
               <label className="text-sm font-medium text-gray-700">Description</label>
               <input
                 value={editDraft.description}
-                onChange={(e) => setEditDraft((prev) => ({ ...prev, description: e.target.value }))}
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4"
+                onChange={(e) => { setEditDraft((prev) => ({ ...prev, description: e.target.value })); setEditErrors((p) => ({ ...p, description: undefined })) }}
+                maxLength={1000}
+                className={`mt-2 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none ring-indigo-500/20 focus:ring-4 ${editErrors.description ? 'border-rose-300' : 'border-gray-200'}`}
               />
+              {editErrors.description ? <p className="mt-1 text-xs text-rose-600">{editErrors.description}</p> : <p className="mt-1 text-xs text-gray-400">{editDraft.description.length}/1000</p>}
             </div>
           </div>
 
@@ -640,6 +814,8 @@ export default function ResourcesOverviewPage() {
               </div>
             </div>
 
+            {editWindowError && <p className="mt-2 text-xs text-rose-600">{editWindowError}</p>}
+
             {editWindows.length ? (
               <ul className="mt-3 space-y-2 text-sm text-gray-700">
                 {editWindows.map((w, idx) => (
@@ -649,7 +825,7 @@ export default function ResourcesOverviewPage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => removeEditWindow(idx)}
+                      onClick={() => { removeEditWindow(idx); setEditWindowError('') }}
                       className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-800 hover:bg-gray-50"
                     >
                       Remove
@@ -850,4 +1026,13 @@ export default function ResourcesOverviewPage() {
       ) : null}
     </section>
   )
+}
+
+function extractApiError(err) {
+  try {
+    const data = JSON.parse(err?.message || '{}')
+    return data.error || data.message || err?.message || 'Something went wrong'
+  } catch {
+    return err?.message || 'Something went wrong'
+  }
 }

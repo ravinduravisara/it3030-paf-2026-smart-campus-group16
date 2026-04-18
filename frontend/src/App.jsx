@@ -10,7 +10,6 @@ import HomePage from './pages/home/HomePage.jsx'
 import ResourcesOverviewPage from './pages/resources/ResourcesOverviewPage.jsx'
 import TicketsOverviewPage from './pages/tickets/TicketsOverviewPage.jsx'
 import ProfilePage from './pages/profile/ProfilePage.jsx'
-import NotificationsPage from './pages/notifications/NotificationsPage.jsx'
 import UsersPage from './pages/admin/UsersPage.jsx'
 import { useAuth } from './hooks/useAuth.js'
 import AdminRoute from './routes/AdminRoute.jsx'
@@ -104,10 +103,6 @@ export default function App() {
         ) : route === 'profile' ? (
           <ProtectedRoute>
             <ProfilePage />
-          </ProtectedRoute>
-        ) : route === 'notifications' ? (
-          <ProtectedRoute>
-            <NotificationsPage />
           </ProtectedRoute>
         ) : (
           <HomePage />

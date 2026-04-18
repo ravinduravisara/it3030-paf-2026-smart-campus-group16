@@ -26,12 +26,6 @@ const quickActions = [
     desc: 'Monitor accounts, permissions, and access status.',
     href: '#users',
     icon: '👥'
-  },
-  {
-    title: 'Notifications',
-    desc: 'View and manage system notifications for all events.',
-    href: '#notifications',
-    icon: '🔔'
   }
 ]
 

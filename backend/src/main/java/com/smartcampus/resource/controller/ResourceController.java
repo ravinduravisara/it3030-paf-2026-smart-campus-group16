@@ -59,7 +59,7 @@ public class ResourceController {
 	@PutMapping("/{id}")
 	public ResponseEntity<ResourceResponse> update(
 			@PathVariable String id,
-			@RequestBody ResourceUpdateRequest request
+			@Valid @RequestBody ResourceUpdateRequest request
 	) {
 		ResourceResponse updated = resourceService.updateResource(id, request);
 		if (updated == null) {

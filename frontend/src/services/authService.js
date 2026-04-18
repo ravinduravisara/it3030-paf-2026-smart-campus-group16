@@ -32,7 +32,6 @@ function mapAuthPayload(data, fallbackName = '') {
 		token: data.token,
 		message: data.message,
 		user: {
-			id: data.id || null,
 			name: data.name || fallbackName || data.username,
 			username: data.username || fallbackName,
 			email: data.email || data.username || '',
