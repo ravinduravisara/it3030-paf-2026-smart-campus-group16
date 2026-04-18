@@ -2,6 +2,7 @@ package com.smartcampus.auth.dto;
 
 public record AuthResponse(
 	String token,
+	String id,
 	String username,
 	String role,
 	String email,
@@ -9,10 +10,10 @@ public record AuthResponse(
 	String message
 ) {
 	public AuthResponse(String token, String username, String role) {
-		this(token, username, role, username, username, null);
+		this(token, null, username, role, username, username, null);
 	}
 
 	public AuthResponse(String token, String username, String role, String email, String name) {
-		this(token, username, role, email, name, null);
+		this(token, null, username, role, email, name, null);
 	}
 }

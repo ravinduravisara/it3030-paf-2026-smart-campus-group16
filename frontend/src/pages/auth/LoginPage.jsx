@@ -11,10 +11,7 @@ export default function LoginPage() {
 	const hashParams = new URLSearchParams(hashQuery)
 	const [info, setInfo] = useState(() => hashParams.get('message') || '')
 	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
-	const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-	const googleLoginUrl = isLocalDev
-		? `${apiBaseUrl}/api/auth/google/dev`
-		: `${apiBaseUrl}/oauth2/authorization/google`
+	const googleLoginUrl = `${apiBaseUrl}/oauth2/authorization/google`
 	const oauthError = window.location.hash.includes('error=oauth2')
 	const registeredSuccess = hashParams.get('registered') === 'success'
 

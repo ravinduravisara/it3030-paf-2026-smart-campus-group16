@@ -58,13 +58,18 @@ public class AuthController {
 	public void googleDevLogin(HttpServletResponse response) throws IOException {
 		AuthResponse authResponse = authService.devGoogleLogin();
 		String redirectUrl = String.format(
-				"%s/#login?oauth=success&token=%s&email=%s&name=%s&role=%s",
+				"%s/#login?oauth=success&token=%s&id=%s&email=%s&name=%s&role=%s",
 				frontendUrl,
-				URLEncoder.encode(authResponse.token(), StandardCharsets.UTF_8),
-				URLEncoder.encode(authResponse.email(), StandardCharsets.UTF_8),
-				URLEncoder.encode(authResponse.name(), StandardCharsets.UTF_8),
-				URLEncoder.encode(authResponse.role(), StandardCharsets.UTF_8)
+				encode(authResponse.token()),
+				encode(authResponse.id() != null ? authResponse.id() : ""),
+				encode(authResponse.email()),
+				encode(authResponse.name()),
+				encode(authResponse.role())
 		);
 		response.sendRedirect(redirectUrl);
+	}
+
+	private static String encode(String value) {
+		return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
 	}
 }
