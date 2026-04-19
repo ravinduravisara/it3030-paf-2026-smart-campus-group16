@@ -52,11 +52,12 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 		// Store user info in a separate cookie (not httpOnly so JS can read it)
 		String userJson = String.format(
 				"{\"name\":\"%s\",\"username\":\"%s\",\"email\":\"%s\",\"role\":\"%s\"}",
-				java.net.URLEncoder.encode(authResponse.name(), StandardCharsets.UTF_8),
-				java.net.URLEncoder.encode(authResponse.username(), StandardCharsets.UTF_8),
-				java.net.URLEncoder.encode(authResponse.email(), StandardCharsets.UTF_8),
-				java.net.URLEncoder.encode(authResponse.role(), StandardCharsets.UTF_8)
+				escapeJsonString(authResponse.name()),
+				escapeJsonString(authResponse.username()),
+				escapeJsonString(authResponse.email()),
+				escapeJsonString(authResponse.role())
 		);
+		userJson = java.net.URLEncoder.encode(userJson, StandardCharsets.UTF_8);
 		Cookie userCookie = new Cookie("sc.user", userJson);
 		userCookie.setPath("/");
 		userCookie.setMaxAge(86400); // 24 hours
@@ -73,5 +74,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
 		setDefaultTargetUrl(redirectUrl);
 		super.onAuthenticationSuccess(request, response, authentication);
+	}
+
+	private String escapeJsonString(String value) {
+		if (value == null) return "";
+		return value.replace("\\", "\\\\").replace("\"", "\\\"");
 	}
 }

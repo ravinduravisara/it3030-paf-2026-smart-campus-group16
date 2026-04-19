@@ -6,9 +6,37 @@ import {
   ShieldCheck,
   Wrench,
 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import FeatureCard from '../../components/common/FeatureCard.jsx'
+import { getJson } from '../../services/api.js'
 
 export default function HomePage() {
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      try {
+        const data = await getJson('/api/public/stats')
+        if (!cancelled) setStats(data)
+      } catch {
+        if (!cancelled) setStats(null)
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const activeBookings = useMemo(() => stats?.activeBookings ?? 0, [stats])
+  const openTickets = useMemo(() => stats?.openTickets ?? 0, [stats])
+  const resourceUsagePercent = useMemo(() => stats?.resourceUsagePercent ?? 0, [stats])
+  const ticketResolutionPercent = useMemo(() => stats?.ticketResolutionPercent ?? 0, [stats])
+  const userEngagementPercent = useMemo(() => stats?.userEngagementPercent ?? 0, [stats])
+
   return (
     <>
       <section
@@ -79,11 +107,11 @@ export default function HomePage() {
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl bg-white/5 p-4">
                   <p className="text-sm text-gray-400">Active Bookings</p>
-                  <p className="mt-2 text-3xl font-bold">128</p>
+                  <p className="mt-2 text-3xl font-bold">{activeBookings.toLocaleString()}</p>
                 </div>
                 <div className="rounded-2xl bg-white/5 p-4">
                   <p className="text-sm text-gray-400">Open Tickets</p>
-                  <p className="mt-2 text-3xl font-bold">17</p>
+                  <p className="mt-2 text-3xl font-bold">{openTickets.toLocaleString()}</p>
                 </div>
                 <div className="rounded-2xl bg-white/5 p-4 sm:col-span-2">
                   <p className="text-sm text-gray-400">System Overview</p>
@@ -91,39 +119,42 @@ export default function HomePage() {
                     <div>
                       <div className="mb-1 flex justify-between text-xs text-gray-400">
                         <span>Resource usage</span>
-                        <span>72%</span>
+                        <span>{resourceUsagePercent}%</span>
                       </div>
                       <div className="h-2 rounded-full bg-white/10">
-                        <div className="h-2 w-[72%] rounded-full bg-indigo-400" />
+                        <div
+                          className="h-2 rounded-full bg-indigo-400"
+                          style={{ width: `${resourceUsagePercent}%` }}
+                        />
                       </div>
                     </div>
                     <div>
                       <div className="mb-1 flex justify-between text-xs text-gray-400">
                         <span>Ticket resolution</span>
-                        <span>84%</span>
+                        <span>{ticketResolutionPercent}%</span>
                       </div>
                       <div className="h-2 rounded-full bg-white/10">
-                        <div className="h-2 w-[84%] rounded-full bg-violet-400" />
+                        <div
+                          className="h-2 rounded-full bg-violet-400"
+                          style={{ width: `${ticketResolutionPercent}%` }}
+                        />
                       </div>
                     </div>
                     <div>
                       <div className="mb-1 flex justify-between text-xs text-gray-400">
                         <span>User engagement</span>
-                        <span>91%</span>
+                        <span>{userEngagementPercent}%</span>
                       </div>
                       <div className="h-2 rounded-full bg-white/10">
-                        <div className="h-2 w-[91%] rounded-full bg-cyan-400" />
+                        <div
+                          className="h-2 rounded-full bg-cyan-400"
+                          style={{ width: `${userEngagementPercent}%` }}
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="absolute -bottom-6 -left-6 hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-xl sm:block">
-              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">System status</p>
-              <p className="mt-2 text-lg font-semibold text-gray-900">Stable & Ready</p>
-              <p className="mt-1 text-sm text-gray-600">Frontend prepared for API integration</p>
             </div>
           </div>
         </div>

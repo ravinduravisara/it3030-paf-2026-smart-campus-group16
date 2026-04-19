@@ -11,10 +11,7 @@ export default function LoginPage() {
 	const hashParams = new URLSearchParams(hashQuery)
 	const [info, setInfo] = useState(() => hashParams.get('message') || '')
 	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
-	const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-	const googleLoginUrl = isLocalDev
-		? `${apiBaseUrl}/api/auth/google/dev`
-		: `${apiBaseUrl}/oauth2/authorization/google`
+	const googleLoginUrl = `${apiBaseUrl}/oauth2/authorization/google`
 	const oauthError = window.location.hash.includes('error=oauth2')
 	const registeredSuccess = hashParams.get('registered') === 'success'
 
@@ -104,7 +101,7 @@ export default function LoginPage() {
 					<div className="p-6">
 						{oauthError ? (
 							<div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-								Google OAuth credentials are failing in this local environment. The development sign-in fallback is available from the same button.
+								Google sign-in failed. Check that your backend has valid GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET and that the Google Console redirect URI matches this backend URL.
 							</div>
 						) : null}
 
