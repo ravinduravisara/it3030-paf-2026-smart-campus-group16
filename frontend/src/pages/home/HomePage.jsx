@@ -170,9 +170,6 @@ export default function HomePage() {
               Core platform capabilities
             </h2>
           </div>
-          <div className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700">
-            Frontend is running
-          </div>
         </div>
 
         <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
