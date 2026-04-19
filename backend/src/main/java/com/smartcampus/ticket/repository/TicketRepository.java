@@ -11,6 +11,8 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 public interface TicketRepository extends MongoRepository<Ticket, String> {
 	List<Ticket> findByCreatedBy(String createdBy);
 	List<Ticket> findByStatus(TicketStatus status);
+	long countByStatus(TicketStatus status);
+	long countByStatusIn(List<TicketStatus> statuses);
 	List<Ticket> findByPriority(TicketPriority priority);
 	List<Ticket> findByCategory(String category);
 	List<Ticket> findByAssignedTo(String assignedTo);

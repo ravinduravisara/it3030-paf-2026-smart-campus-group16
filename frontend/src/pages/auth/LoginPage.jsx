@@ -125,7 +125,7 @@ export default function LoginPage() {
 					<div className="p-6">
 						{oauthError ? (
 							<div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-								Google OAuth credentials are failing in this local environment. The development sign-in fallback is available from the same button.
+								Google sign-in failed. Check that your backend has valid GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET and that the Google Console redirect URI matches this backend URL.
 							</div>
 						) : null}
 
