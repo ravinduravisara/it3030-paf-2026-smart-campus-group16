@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth.js'
 import { signIn } from '../../services/authService.js'
 
@@ -11,12 +11,33 @@ export default function LoginPage() {
 	const hashParams = new URLSearchParams(hashQuery)
 	const [info, setInfo] = useState(() => hashParams.get('message') || '')
 	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
-	const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-	const googleLoginUrl = isLocalDev
-		? `${apiBaseUrl}/api/auth/google/dev`
-		: `${apiBaseUrl}/oauth2/authorization/google`
+	const googleLoginUrl = `${apiBaseUrl}/oauth2/authorization/google`
 	const oauthError = window.location.hash.includes('error=oauth2')
 	const registeredSuccess = hashParams.get('registered') === 'success'
+
+	// Handle OAuth2 callback - extract token from URL params and establish session
+	useEffect(() => {
+		if (hashParams.get('oauth') === 'success') {
+			const token = hashParams.get('token')
+			const email = hashParams.get('email')
+			const name = hashParams.get('name')
+			const role = hashParams.get('role')
+
+			if (token) {
+				establishSession({
+					token,
+					user: {
+						name: name || email || '',
+						username: name || email || '',
+						email: email || '',
+						role: role || 'USER',
+					},
+				})
+				// Clean up the URL and redirect to home
+				window.location.hash = role === 'ADMIN' ? '#admin' : '#home'
+			}
+		}
+	}, [])
 
 	async function handleSignIn(e) {
 		e.preventDefault()
