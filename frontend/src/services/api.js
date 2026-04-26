@@ -1,4 +1,4 @@
-import { getAccessToken } from './tokenService.js'
+import { clearSession, getAccessToken } from './tokenService.js'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
@@ -25,6 +25,11 @@ async function request(path, options = {}) {
 	})
 
 	if (!res.ok) {
+		if (res.status === 401) {
+			clearSession()
+			window.location.hash = '#login'
+			throw new Error('Session expired. Please log in again.')
+		}
 		const text = await res.text().catch(() => '')
 		throw new Error(text || `Request failed: ${res.status}`)
 	}

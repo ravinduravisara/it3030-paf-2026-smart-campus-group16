@@ -56,7 +56,13 @@ public class AuthService {
 		}
 
 		User user = findUserByIdentifier(identifier);
-		if (user == null || !Objects.equals(user.getPassword(), password)) {
+		if (user == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+		}
+		if (user.getPassword() == null || user.getPassword().isBlank()) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "This account uses Google sign-in. Please use the Google login button.");
+		}
+		if (!Objects.equals(user.getPassword(), password)) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
 		}
 
